@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/Horizon">
+        <file>markWordColorCase/C.txt</file>
+    </qresource>
+</RCC>
