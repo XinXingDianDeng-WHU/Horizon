@@ -139,36 +139,19 @@
     <property name="title">
      <string>文件</string>
     </property>
-    <widget class="QMenu" name="menuNew">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="mouseTracking">
-      <bool>true</bool>
-     </property>
-     <property name="title">
-      <string>新建</string>
-     </property>
-    </widget>
-    <addaction name="menuNew"/>
-    <addaction name="separator"/>
     <addaction name="actionOpen"/>
     <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="separator"/>
-    <addaction name="actionSave_as"/>
+    <addaction name="actionSave_As"/>
+    <addaction name="separator"/>
+    <addaction name="actionSave_All"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
     <addaction name="separator"/>
-    <addaction name="actionSave_All"/>
+    <addaction name="actionNew"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -270,17 +253,17 @@
     <string>保存</string>
    </property>
   </action>
-  <action name="actionSave_as">
+  <action name="actionSave_As">
    <property name="text">
     <string>另存为</string>
    </property>
   </action>
-  <action name="actionClose">
+  <action name="actionSave_All">
    <property name="text">
     <string>保存全部</string>
    </property>
   </action>
-  <action name="actionQuit">
+  <action name="actionClose">
    <property name="text">
     <string>关闭</string>
    </property>
@@ -335,9 +318,14 @@
     <string>文件</string>
    </property>
   </action>
-  <action name="actionSave_All">
+  <action name="actionQuit">
    <property name="text">
     <string>退出</string>
+   </property>
+  </action>
+  <action name="actionNew">
+   <property name="text">
+    <string>New</string>
    </property>
   </action>
  </widget>

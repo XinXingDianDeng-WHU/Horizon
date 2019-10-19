@@ -15,10 +15,13 @@ private:
 	Ui::HorizonClass ui;
 	QStringList file_names;
 	QStringList file_paths;
-
+	QList<HTextEditor*>* editors;
 
 private slots:
 	void file_open();
-	void filelist_clicked(QListWidgetItem* item);
 	void item_changed();
+	void save();
+	void save_as();
+	void saveAll();
+	void newFile();
 };
