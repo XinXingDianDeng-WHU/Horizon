@@ -1,5 +1,25 @@
 <RCC>
     <qresource prefix="/Horizon">
-        <file>markWordColorCase/C.txt</file>
+        <file>res/icon/About.png</file>
+        <file>res/icon/Break.png</file>
+        <file>res/icon/Check.png</file>
+        <file>res/icon/Close.png</file>
+        <file>res/icon/Copy.png</file>
+        <file>res/icon/Cut.png</file>
+        <file>res/icon/New.png</file>
+        <file>res/icon/Open.png</file>
+        <file>res/icon/Paste.png</file>
+        <file>res/icon/Quit.png</file>
+        <file>res/icon/Redo.png</file>
+        <file>res/icon/Redo_.png</file>
+        <file>res/icon/Run.png</file>
+        <file>res/icon/Save.png</file>
+        <file>res/icon/Select_All.png</file>
+        <file>res/icon/Undo.png</file>
+        <file>res/icon/Undo_.png</file>
+        <file>res/code/HighLightCases.txt</file>
+        <file>res/code/source2.txt</file>
+        <file>res/code/source3.txt</file>
+        <file>res/code/sourceCode.txt</file>
     </qresource>
 </RCC>

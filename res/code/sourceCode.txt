@@ -31,3 +31,5 @@ void func(int a)
 	return (a+b);
 }
 $
+
+shift ififififif

@@ -102,22 +102,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Horizon.cpp" />
-    <ClCompile Include="HTextEditor.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="newFileDialog.cpp" />
+    <ClCompile Include="SmartEdit.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ScaleWidget.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="XmlOperator.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="Horizon.h" />
-    <QtMoc Include="HTextEditor.h" />
+    <QtMoc Include="ScaleWidget.h" />
     <QtMoc Include="newFileDialog.h" />
+    <ClInclude Include="XmlOperator.h" />
+    <QtMoc Include="Horizon.h" />
+    <QtMoc Include="SmartEdit.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="Horizon.ui" />
+    <QtUic Include="newFileDialog.ui" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="Horizon.qrc" />

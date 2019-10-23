@@ -1,0 +1,9 @@
+if this.count>0{
+return static purple;
+}
+
+still if int.size > 4{
+black = blue;
+}
+
+lighter
