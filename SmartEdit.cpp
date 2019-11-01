@@ -15,11 +15,7 @@ void HSynHighlighter::readSynHighlighter(const QString &fileName){
     QString curLine;//当前行
 	QStringList lineWords;//每行的词
 	QString keyWords;//每行第一个词是关键字
-    QRegularExpression spacesPattern("[ ]+");
-	/*\s 表示空白字符。包括，空格，制表符等
-		“ ”只表示空格。
-		\s + 可匹配至少一个空白字符。
-		[] + 只表示多个空格。*/
+    QRegularExpression spacesPattern("[ ]+");//commit1
 
     while(!readFileStream.atEnd()){
         curLine = readFileStream.readLine();
@@ -54,10 +50,10 @@ void HSynHighlighter::highlightBlock(const QString &text){
 SmartEdit::SmartEdit(QTabWidget *parent):QPlainTextEdit(parent)
 , hSynHighlighter(new HSynHighlighter(this->document()))
 , keyWordsCompleter(NULL)
-, lineNumberArea(new LineNumberArea(this)) {
+, lineNumberArea(new LineNumberArea(this))
+, exceptionRow(-1) {
 	
-    hSynHighlighter->readSynHighlighter(QString("res/code/HighLightCases.txt")); //设置语法高亮文件
-
+    hSynHighlighter->readSynHighlighter(HighLightCasesTxt); //设置语法高亮文件
     //补全列表设置
     QMap<QString, QColor>::iterator iter;
     for (iter = hSynHighlighter->markedWordColorCase.begin(); 
@@ -164,26 +160,29 @@ void SmartEdit::resizeEvent(QResizeEvent *e){
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
 }
 
-void SmartEdit::lineNumberAreaPaintEvent(QPaintEvent *event){
+void SmartEdit::lineNumberAreaPaintEvent(QPaintEvent* event) {
     QPainter painter(lineNumberArea);
-    painter.fillRect(event->rect(), QColor(220,220,220));
-	painter.setPen(Qt::darkCyan);
-
-    QTextBlock block = firstVisibleBlock();
-    int blockNumber = block.blockNumber();
-    int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
-    int bottom = top + (int) blockBoundingRect(block).height();
+	QTextBlock block = firstVisibleBlock();
+	painter.fillRect(event->rect(), QColor(220, 220, 220));
+	int blockNumber = block.blockNumber()
+		, top = (int)blockBoundingGeometry(block).translated(contentOffset()).top()//直接赋值为0则行号和文本高度不对齐
+		, bottom = top + (int)blockBoundingRect(block).height();//块高设置为字体高也会导致行号与字体高度不对齐
 
     while (block.isValid() && top <= event->rect().bottom()){
         if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-            painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(),
-                             Qt::AlignRight, number);
+			if (exceptionRow == blockNumber + 1) {
+				painter.fillRect(QRect(0, top, lineNumberArea->width(), fontMetrics().height()), Qt::red);
+				painter.setPen(Qt::white);
+			}
+			QString number = QString::number(blockNumber + 1);
+			painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
+			painter.setPen(Qt::black);
+			this->update();
         }
 		block = block.next();
         top = bottom;
         bottom = top + (int) blockBoundingRect(block).height();
-        ++blockNumber;
+        blockNumber++;
     }
 }
 

@@ -1,9 +1,0 @@
-real nB = -10.4,nC = -0.1;
-/* asiodas nodas**/
-//saNLD ANSD
-struct A{
-	int kk = 10;
-	real b;
-};
-гд
-

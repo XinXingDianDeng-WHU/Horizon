@@ -2,7 +2,6 @@
     <qresource prefix="/Horizon">
         <file>res/icon/About.png</file>
         <file>res/icon/Break.png</file>
-        <file>res/icon/Check.png</file>
         <file>res/icon/Close.png</file>
         <file>res/icon/Copy.png</file>
         <file>res/icon/Cut.png</file>
@@ -14,12 +13,9 @@
         <file>res/icon/Redo_.png</file>
         <file>res/icon/Run.png</file>
         <file>res/icon/Save.png</file>
-        <file>res/icon/Select_All.png</file>
         <file>res/icon/Undo.png</file>
         <file>res/icon/Undo_.png</file>
-        <file>res/code/HighLightCases.txt</file>
-        <file>res/code/source2.txt</file>
-        <file>res/code/source3.txt</file>
-        <file>res/code/sourceCode.txt</file>
+        <file>res/icon/SaveAll.png</file>
+        <file>res/icon/SelectAll.png</file>
     </qresource>
 </RCC>

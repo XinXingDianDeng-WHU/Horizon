@@ -1,0 +1,52 @@
+/*<commit0>
+setStrechFactor，第一个参数指内部空间索引，第二个参数为相对比例
+例如上文horizontalSplitter中，listWidget索引为0，verticalSplitter索引为1
+默认情况下，所有控件strench比例属性都是0
+例如初始时verticalSplitter中inputView：outputView=0：0，即均分
+如果1：0，则前者大后者小，比例为默认比例
+如果比例均不为0，例如3：2，则大小比就是3：2
+*/
+
+/*<commit1>
+\s 表示空白字符。包括，空格，制表符等
+“ ”只表示空格。
+\s + 可匹配至少一个空白字符。
+[] + 只表示多个空格。
+*/
+
+/*<commit2>
+tab删除动作务必放在list删除动作前，
+临界问题下先做tab删除返回的index是正确的，而先删做list删除则会引起inde应该返回0实际返回1，
+原因在于list中connect动作同时包含了list和tab操作
+*/
+
+/*<commit3>实用技巧
+
+函数返回类型并不会影响内部执行动作
+if (QMessageBox::Cancel == fQuit())event->ignore();
+fQuit()是一个int型函数，其内部包含弹出对话框的动作
+而close Event函数在判断Cancel==fQuit()的同时，
+fQuit()仍然会执行弹出对话框的动作；
+event->ignore()是因为即使closeEvent()被重写，仍然会执行原生close动作
+值得注意的是，closeEvent对应app窗口函数原生的关闭动作
+如果将此处closeEvent参数放入fQuit()，再寄希于closeEvent去调用fQuit()以提高代码利用率
+那么你将失败，这是因为fQuit引入QCloseEvent*参数后，内部代码功能丢失
+本质上是QCloseEvent*和connect函数冲突，引起fQuit()失效；
+*/
+
+/*<commit4>
+凡涉及list、tab改变index的操作都要谨慎，此处list、tab添加元素动作必须放在list、tab设置当前index操作之前
+也即listadd、tabadd必须放在listsetcurrentitem、tabsetcurrentindex之前
+两个add之间可互换
+两个set之间不可互换，一定是listset在前、tabset在后
+*/
+
+/*<commit5>
+如果打开文件采用的方法为appendPlainText，则文件初始内容是空，刚打开的文件是可执行撤销（Undo）的，setFocus时光标默认在文本末尾
+如果打开文件采用的是setPlainText，则初始内容就是set的参数，刚打开的文件执行撤销不会有任何响应
+但出现的问题是setFocus后，光标默认在开头，因此还需将光标移动到文本末
+如果不执行setFocus，直接执行光标移动到末尾，程序就会崩溃
+因为焦点不在文本框而是在horizon上或者Windows其他非文本框控件上
+非文本框控件无法执行光标移动，肯定崩溃
+*/
+$

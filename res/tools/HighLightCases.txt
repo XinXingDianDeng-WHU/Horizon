@@ -1,0 +1,25 @@
+$$keyword r g b
+black 0 0 0
+gray 112 128 144
+white 255 255 255
+red 255 0 0
+orange 255 165 0
+yellow 255 215 0
+green 50 205 50
+cyan 0 205 205
+blue 0 0 255
+purple 160 32 240
+
+void 0 0 255
+int 0 0 255
+real 0 0 255
+char 0 0 255
+struct 0 0 255
+
+const 160 32 240
+if 160 32 240
+else 160 32 240
+while 160 32 240
+break 160 32 240
+continue 160 32 240
+return 160 32 240

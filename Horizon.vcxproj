@@ -62,7 +62,8 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <QtMoc>
-      <PrependInclude>stdafx.h</PrependInclude>
+      <PrependInclude>
+      </PrependInclude>
     </QtMoc>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -70,7 +71,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
       <AdditionalIncludeDirectories>F:\Qt\5.13.1\msvc2017_64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -83,14 +84,15 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <QtMoc>
-      <PrependInclude>stdafx.h</PrependInclude>
+      <PrependInclude>
+      </PrependInclude>
     </QtMoc>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat />
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
@@ -103,6 +105,56 @@
   <ItemGroup>
     <ClCompile Include="Horizon.cpp" />
     <ClCompile Include="newFileDialog.cpp" />
+    <ClCompile Include="Parser\AssignStmtAST.cpp" />
+    <ClCompile Include="Parser\AST.cpp" />
+    <ClCompile Include="Parser\BreakStmtAST.cpp" />
+    <ClCompile Include="Parser\CharAST.cpp" />
+    <ClCompile Include="Parser\ContinueStmtAST.cpp" />
+    <ClCompile Include="Parser\DecExpAST.cpp" />
+    <ClCompile Include="Parser\DecVarNameAST.cpp" />
+    <ClCompile Include="Parser\DirectTypeSpecifyAST.cpp" />
+    <ClCompile Include="Parser\EndAST.cpp" />
+    <ClCompile Include="Parser\ExpAST.cpp" />
+    <ClCompile Include="Parser\ExpListAST.cpp" />
+    <ClCompile Include="Parser\FormalParaItemAST.cpp" />
+    <ClCompile Include="Parser\FormalParaListAST.cpp" />
+    <ClCompile Include="Parser\FromAutoTools\Production.cpp" />
+    <ClCompile Include="Parser\FromAutoTools\ProductionSym.cpp" />
+    <ClCompile Include="Parser\FromAutoTools\Reader.cpp" />
+    <ClCompile Include="Parser\FromLexer\MyLexer.cpp" />
+    <ClCompile Include="Parser\FuncCallStmtAST.cpp" />
+    <ClCompile Include="Parser\FuncDefineAST.cpp" />
+    <ClCompile Include="Parser\IdentifierAST.cpp" />
+    <ClCompile Include="Parser\IdItemAST.cpp" />
+    <ClCompile Include="Parser\IdListAST.cpp" />
+    <ClCompile Include="Parser\IfStmtAST.cpp" />
+    <ClCompile Include="Parser\IntAST.cpp" />
+    <ClCompile Include="Parser\MyParser.cpp" />
+    <ClCompile Include="Parser\NumberAST.cpp" />
+    <ClCompile Include="Parser\OperatorAST.cpp" />
+    <ClCompile Include="Parser\OtherSymAST.cpp" />
+    <ClCompile Include="Parser\PointerAST.cpp" />
+    <ClCompile Include="Parser\PointerTypeSpecifyAST.cpp" />
+    <ClCompile Include="Parser\ProgramAST.cpp" />
+    <ClCompile Include="Parser\RealAST.cpp" />
+    <ClCompile Include="Parser\RealParaItemAST.cpp" />
+    <ClCompile Include="Parser\RealParaListAST.cpp" />
+    <ClCompile Include="Parser\ReturnStmtAST.cpp" />
+    <ClCompile Include="Parser\SingleVarDecAST.cpp" />
+    <ClCompile Include="Parser\StmtAST.cpp" />
+    <ClCompile Include="Parser\StmtsAST.cpp" />
+    <ClCompile Include="Parser\StringAST.cpp" />
+    <ClCompile Include="Parser\Struct.cpp" />
+    <ClCompile Include="Parser\StructDecAST.cpp" />
+    <ClCompile Include="Parser\TypeAST.cpp" />
+    <ClCompile Include="Parser\TypeSpecifyAST.cpp" />
+    <ClCompile Include="Parser\ValAST.cpp" />
+    <ClCompile Include="Parser\ValListAST.cpp" />
+    <ClCompile Include="Parser\VarDecAST.cpp" />
+    <ClCompile Include="Parser\Variable.cpp" />
+    <ClCompile Include="Parser\VarListAST.cpp" />
+    <ClCompile Include="Parser\VarNameAST.cpp" />
+    <ClCompile Include="Parser\WhileStmtAST.cpp" />
     <ClCompile Include="SmartEdit.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ScaleWidget.cpp" />
@@ -110,12 +162,62 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="XmlOperator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ScaleWidget.h" />
     <QtMoc Include="newFileDialog.h" />
-    <ClInclude Include="XmlOperator.h" />
+    <ClInclude Include="Parser\AssignStmtAST.h" />
+    <ClInclude Include="Parser\AST.h" />
+    <ClInclude Include="Parser\BreakStmtAST.h" />
+    <ClInclude Include="Parser\CharAST.h" />
+    <ClInclude Include="Parser\ContinueStmtAST.h" />
+    <ClInclude Include="Parser\DecExpAST.h" />
+    <ClInclude Include="Parser\DecVarNameAST.h" />
+    <ClInclude Include="Parser\DirectTypeSpecifyAST.h" />
+    <ClInclude Include="Parser\EndAST.h" />
+    <ClInclude Include="Parser\Enums_Structs.h" />
+    <ClInclude Include="Parser\ExpAST.h" />
+    <ClInclude Include="Parser\ExpListAST.h" />
+    <ClInclude Include="Parser\FormalParaItemAST.h" />
+    <ClInclude Include="Parser\FormalParaListAST.h" />
+    <ClInclude Include="Parser\FromAutoTools\Production.h" />
+    <ClInclude Include="Parser\FromAutoTools\ProductionSym.h" />
+    <ClInclude Include="Parser\FromAutoTools\Reader.h" />
+    <ClInclude Include="Parser\FromLexer\header.h" />
+    <ClInclude Include="Parser\FromLexer\MyLexer.h" />
+    <ClInclude Include="Parser\FuncCallStmtAST.h" />
+    <ClInclude Include="Parser\FuncDefineAST.h" />
+    <ClInclude Include="Parser\IdentifierAST.h" />
+    <ClInclude Include="Parser\IdItemAST.h" />
+    <ClInclude Include="Parser\IdListAST.h" />
+    <ClInclude Include="Parser\IfStmtAST.h" />
+    <ClInclude Include="Parser\IntAST.h" />
+    <ClInclude Include="Parser\MyParser.h" />
+    <ClInclude Include="Parser\NumberAST.h" />
+    <ClInclude Include="Parser\OperatorAST.h" />
+    <ClInclude Include="Parser\OtherSymAST.h" />
+    <ClInclude Include="Parser\PointerAST.h" />
+    <ClInclude Include="Parser\PointerTypeSpecifyAST.h" />
+    <ClInclude Include="Parser\ProgramAST.h" />
+    <ClInclude Include="Parser\RealAST.h" />
+    <ClInclude Include="Parser\RealParaItemAST.h" />
+    <ClInclude Include="Parser\RealParaListAST.h" />
+    <ClInclude Include="Parser\ReturnStmtAST.h" />
+    <ClInclude Include="Parser\SingleVarDecAST.h" />
+    <ClInclude Include="Parser\StmtAST.h" />
+    <ClInclude Include="Parser\StmtsAST.h" />
+    <ClInclude Include="Parser\StringAST.h" />
+    <ClInclude Include="Parser\Struct.h" />
+    <ClInclude Include="Parser\StructDecAST.h" />
+    <ClInclude Include="Parser\TypeAST.h" />
+    <ClInclude Include="Parser\TypeSpecifyAST.h" />
+    <ClInclude Include="Parser\ValAST.h" />
+    <ClInclude Include="Parser\ValListAST.h" />
+    <ClInclude Include="Parser\VarDecAST.h" />
+    <ClInclude Include="Parser\Variable.h" />
+    <ClInclude Include="Parser\VarListAST.h" />
+    <ClInclude Include="Parser\VarNameAST.h" />
+    <ClInclude Include="Parser\WhileStmtAST.h" />
     <QtMoc Include="Horizon.h" />
     <QtMoc Include="SmartEdit.h" />
     <ClInclude Include="stdafx.h" />

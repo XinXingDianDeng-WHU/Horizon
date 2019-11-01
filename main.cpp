@@ -2,12 +2,11 @@
 #include "Horizon.h"
 #include "ScaleWidget.h"
 #include <QtWidgets/QApplication>
+#include "Parser/MyParser.h"
 
 int main(int argc, char *argv[]) {
-	QApplication a(argc, argv);
-	/*ScaleWidget s;
-	s.show();*/
-	Horizon w;
-	w.show();
-	return a.exec();
+	QApplication horizonApp(argc, argv);
+	Horizon horizon;
+	horizon.show(); 
+	return horizonApp.exec();
 }

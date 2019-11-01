@@ -1,11 +1,12 @@
 #pragma once
 #include <qpushbutton.h>
 #include "ui_newFileDialog.h"
+
 namespace Ui {
-	class newFileDialog;
+	class newFileDialogClass;
 }
-class newFileDialog :
-	public QDialog
+
+class newFileDialog : public QDialog
 {
 	Q_OBJECT;
 public :
@@ -13,7 +14,7 @@ public :
 	~newFileDialog();
 	QString new_file;
 private:
-	Ui::newFileDialog ui;
+	Ui::newFileDialog nfDialog;
 private slots:
 	void choose_Path();
 	void closeDialog();

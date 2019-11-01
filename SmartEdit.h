@@ -2,6 +2,7 @@
 #ifndef HTEXTEDITOR_H
 #define HTEXTEDITOR_H
 #include "ScaleWidget.h"
+#include "Parser/MyParser.h"
 #include <QtWidgets>
 
 //词色二元表
@@ -25,7 +26,7 @@ class SmartEdit : public QPlainTextEdit {
 public:
 	SmartEdit(QTabWidget* parent = 0);
 	~SmartEdit();
-
+	int exceptionRow;
 	QString keyWordAtCursor() const;
 	int lineNumberAreaWidth();
 	void lineNumberAreaPaintEvent(QPaintEvent* event);
@@ -52,6 +53,8 @@ private:
 	QTextCursor curTextCursor;
 	QRect curTextCursorRect;
 	QString completionPrefix;
+	const QString HighLightCasesTxt = ".//res//tools//HighLightCases.txt";
+
 };
 
 //行号模块, 必须放在SmartEdit类的后面，否则编译无法通过

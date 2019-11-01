@@ -1,0 +1,8 @@
+int Count(int i){
+while(i<100){
+i++;
+}
+//ifelse;
+return i;
+}
+$
