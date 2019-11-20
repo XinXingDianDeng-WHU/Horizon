@@ -52,10 +52,11 @@ private:
 		, * MyProductions = ".//res//tools//MyProductions.txt";
 	const QString productPath = ".//res//product//";
 	struct Var;
+	QList<Var*>* vars;
 
 	QList<Var*>* ReadVal(QString out);
-	void FindFirstPoint(QList<Var*>* vars, int points[]);
-	void Step(QList<Var*>* vars,int points[]);
+	int FindFirstPoint(QList<Var*>* vars, QList<int>* points);
+	int Step(QList<Var*>* vars);
 
 private slots:
 	int fQuit();

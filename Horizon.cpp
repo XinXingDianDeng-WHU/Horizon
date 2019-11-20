@@ -112,12 +112,18 @@ void Horizon::fTest() {//<commit6>
 	}
 	qDebug() << standardOutput;
 	QList<Var*>* vars = ReadVal(standardOutput);
-	IEView->append(standardOutput);
+	QList<int>* p = new QList<int>();
+	p->append(11);
+	p->append(17);
+	qDebug() << FindFirstPoint(vars, p);
+	//qDebug() << Step(vars);
+	//qDebug() << Step(vars);
+	//IEView->append(standardOutput);
 	if (process)
 		process->close();
 
 }
-
+/*变量结构体*/
 struct Horizon::Var
 {
 	QString Line = NULL;
@@ -126,7 +132,7 @@ struct Horizon::Var
 	QString Val = NULL;
 	QString Msg = NULL;
 };
-
+/*读取后台数据并规范化载入内存*/
 QList<Horizon::Var*>* Horizon::ReadVal(QString out)
 {
 	QString temp = NULL;
@@ -135,7 +141,7 @@ QList<Horizon::Var*>* Horizon::ReadVal(QString out)
 	QList<Var*>* vars = new QList<Var*>();
 	Var* tempVar;
 	int n = 0;
-	QString::const_iterator cit = NULL;
+	QString::const_iterator cit = NULL;//QChar指针，用来遍历QString
 	for (cit = out.cbegin(); cit < out.cend(); cit++) {
 		tcr = *cit;
 		if (tcr == '@')
@@ -146,19 +152,30 @@ QList<Horizon::Var*>* Horizon::ReadVal(QString out)
 			case 0:
 				line = temp;
 				temp.clear();
-				n++;
+				if (line == 'W')
+					n = 4;
+				else
+					n = 1;
 				break;
 			case 1:
 				tempVar = new Var();
 				tempVar->Line = line;
-				tempVar->Type = temp;
+				switch (temp.toInt())
+				{
+				case 0:tempVar->Type = "int"; break;
+				case 1:tempVar->Type = "real"; break;
+				case 2:tempVar->Type = "int[]"; break;
+				case 3:tempVar->Type = "real[]"; break;
+				default:
+					break;
+				}
 				temp.clear();
-				n++;
+				n = 2;
 				break;
 			case 2:
 				tempVar->Name = temp;
 				temp.clear();
-				n++;
+				n = 3;
 				break;
 			case 3:
 				tempVar->Val = temp;
@@ -180,22 +197,55 @@ QList<Horizon::Var*>* Horizon::ReadVal(QString out)
 		}
 		else {
 			temp += tcr;
-			if (temp.contains("ERROR")) {
+			if (temp.contains("ERROR:")) {
 				n = 4;
 			}
 		}
 	}
 	return vars;
 }
-
-void Horizon::FindFirstPoint(QList<Var*>* vars, int points[])
+/*找到接下来最近的一个断点行，成功输出断点行号，否则输出-1*/
+int Horizon::FindFirstPoint(QList<Var*>* vars, QList<int>* points)
 {
-	
+	Var* temp = vars->at(0);
+	int line = 0;
+	while (!points->contains(temp->Line.toInt())) {
+		if (temp->Line == "W")
+			consoleView->append(temp->Msg);
+		vars->removeFirst();
+		temp = vars->at(0);
+	}
+	line = temp->Line.toInt();
+	if (temp) {
+		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
+		while (line == temp->Line.toInt()) {
+			IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") + 
+				temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+			vars->removeFirst();
+			temp = vars->at(0);
+		}
+	}
+	else
+		return -1;
+	return line;
 }
-
-void Horizon::Step(QList<Var*>* vars, int points[])
+/*单步向后寻行*/
+int Horizon::Step(QList<Var*>* vars)
 {
-
+	Var* temp = vars->at(0);
+	int line = temp->Line.toInt(); 
+	if (temp) {
+		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
+		while (line == temp->Line.toInt()) {
+			IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") +
+				temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+			vars->removeFirst();
+			temp = vars->at(0);
+		}
+	}
+	else
+		return -1;
+	return line;
 }
 
 /*菜单按钮退出*/
