@@ -49,4 +49,23 @@ event->ignore()是因为即使closeEvent()被重写，仍然会执行原生close
 因为焦点不在文本框而是在horizon上或者Windows其他非文本框控件上
 非文本框控件无法执行光标移动，肯定崩溃
 */
-$
+
+/*<commit6>
+qDebug()<<QProcess::startDetached("C:\\WINDOWS\\system32\\cmd.exe",QStringList("C:\\WINDOWS\\system32\\cmd.exe"));//failed
+qDebug()<<QProcess::startDetached("C:\\WINDOWS\\system32\\cmd.exe");//failed
+qDebug()<<QProcess::startDetached("D:\\Program Files\\tencent\\qqpcmgr\\QMProxyAccelerator\\3.0.5343.134\\QMProxyAcceler.exe");//failed
+qDebug()<<QProcess::startDetached("C:\\Users\\911\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe");//sucess
+qDebug()<<QDesktopServices::openUrl(QUrl(QLatin1String("http://www.baidu.com")));//sucess
+qDebug()<<QDesktopServices::openUrl(QUrl(QLatin1String("D:\\Desktop\\FancyBox\\Box.html")));//failed
+
+/*while (!process->atEnd()) {
+output = QString::fromLocal8Bit(process->readLine().trimmed());
+interpretationExecutionView->append(output);
+if (output.endsWith(">")) {
+readinDialog* dialog = new readinDialog();
+dialog->exec();
+process->execute(dialog->inVar.toLocal8Bit().constData()); 
+process->execute("\n\r");
+}
+}*/
+*/

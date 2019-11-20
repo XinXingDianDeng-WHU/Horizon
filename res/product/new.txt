@@ -1,10 +1,7 @@
 void red(){}
 int green(){}
 real purple(){}
-//struct aStruct{};
-int Act()
-{
-int a = 0;
-}
+/struct aStruct{};
 /**/
+int orange(){}
 $

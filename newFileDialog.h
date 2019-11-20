@@ -3,7 +3,7 @@
 #include "ui_newFileDialog.h"
 
 namespace Ui {
-	class newFileDialogClass;
+	class newFileDialog;
 }
 
 class newFileDialog : public QDialog

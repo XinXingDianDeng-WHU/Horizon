@@ -3,7 +3,6 @@
 
 HSynHighlighter::HSynHighlighter(QTextDocument *document)
 	:QSyntaxHighlighter(document){}
-
 //读取二元表，以判断关键字呈什么颜色
 void HSynHighlighter::readSynHighlighter(const QString &fileName){
     QFile file(fileName);
@@ -73,6 +72,7 @@ SmartEdit::SmartEdit(QTabWidget *parent):QPlainTextEdit(parent)
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateLineNumberArea(QRect,int)));
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
+	connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightIELines()));
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(onCursorPosChanged()));
 
 	setFont(QFont("微软雅黑",14));
@@ -81,7 +81,11 @@ SmartEdit::SmartEdit(QTabWidget *parent):QPlainTextEdit(parent)
     highlightCurrentLine();//高亮显示当前行
 }
 
-SmartEdit::~SmartEdit(){}
+SmartEdit::~SmartEdit(){
+	delete hSynHighlighter;
+	delete keyWordsCompleter;
+	delete lineNumberArea;
+}
 
 #include <QByteArray>//此处位置不可调前
 
@@ -100,9 +104,9 @@ QString SmartEdit::keyWordAtCursor() const{
 }
 
 int SmartEdit::lineNumberAreaWidth(){
-    int digits = 3;//初始位数宽度
+    int digits = 4;//初始位数宽度
     int max = qMax(1, blockCount());//获取最大位数
-    while (max >= 1000){//三位数则宽度固定，四位数及其以上则宽度自增
+    while (max >= 100){//2位数则宽度固定，3位数及其以上则宽度自增
         max /= 10;
         ++digits;
     }
@@ -141,6 +145,7 @@ void SmartEdit::keyPressEvent(QKeyEvent *e){
 
 void SmartEdit::keyReleaseEvent(QKeyEvent* e) {
 	QPlainTextEdit::keyReleaseEvent(e);
+	int curLine = textCursor().blockNumber();
 	switch ( e->key()) {
 	case Qt::Key_ParenLeft:
 		this->textCursor().insertText(")");
@@ -150,6 +155,12 @@ void SmartEdit::keyReleaseEvent(QKeyEvent* e) {
 		this->textCursor().insertText("]"); break;
 	case  Qt::Key_BraceLeft:
 		this->textCursor().insertText("}"); break;
+	case Qt::Key_F1:
+		if(!IELines.contains(curLine))
+			IELines.append(curLine); break;
+	case Qt::Key_F2:
+		if (IELines.contains(curLine))
+			IELines.removeOne(curLine); break;
 	default: break;
 	}
 }
@@ -164,19 +175,24 @@ void SmartEdit::lineNumberAreaPaintEvent(QPaintEvent* event) {
     QPainter painter(lineNumberArea);
 	QTextBlock block = firstVisibleBlock();
 	painter.fillRect(event->rect(), QColor(220, 220, 220));
+	//painter.setBrush(Qt::red);
 	int blockNumber = block.blockNumber()
 		, top = (int)blockBoundingGeometry(block).translated(contentOffset()).top()//直接赋值为0则行号和文本高度不对齐
 		, bottom = top + (int)blockBoundingRect(block).height();//块高设置为字体高也会导致行号与字体高度不对齐
-
+	int numberHeight = fontMetrics().height(), breakpointR = numberHeight - 4;
     while (block.isValid() && top <= event->rect().bottom()){
         if (block.isVisible() && bottom >= event->rect().top()) {
 			if (exceptionRow == blockNumber + 1) {
-				painter.fillRect(QRect(0, top, lineNumberArea->width(), fontMetrics().height()), Qt::red);
-				painter.setPen(Qt::white);
+				painter.fillRect(QRect(0, top, lineNumberArea->width(), numberHeight), QColor(Qt::red).lighter(128));
+				painter.setBrush(Qt::white);
+			} else {
+				painter.setBrush(QColor(Qt::red).lighter(128));
+			}
+			if (IELines.contains(blockNumber)) {
+				painter.drawEllipse(3, top+2, breakpointR, breakpointR);
 			}
 			QString number = QString::number(blockNumber + 1);
-			painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
-			painter.setPen(Qt::black);
+			painter.drawText(0, top, lineNumberArea->width(), numberHeight, Qt::AlignRight, number);
 			this->update();
         }
 		block = block.next();
@@ -216,7 +232,7 @@ void SmartEdit::highlightCurrentLine(){
     QList<QTextEdit::ExtraSelection> extraSelections;
     if (!isReadOnly()){
         QTextEdit::ExtraSelection selection;
-        selection.format.setBackground(QColor(Qt::yellow).lighter(150));//设置当前行背景色
+        selection.format.setBackground(QColor(Qt::yellow).lighter(160));//设置当前行背景色
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = textCursor();
         selection.cursor.clearSelection();

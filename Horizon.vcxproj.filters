@@ -193,6 +193,9 @@
     <ClCompile Include="Parser\StmtAST.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="readinDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -368,12 +371,18 @@
     <QtMoc Include="newFileDialog.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="readinDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="Horizon.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="newFileDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="readinDialog.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

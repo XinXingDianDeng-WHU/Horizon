@@ -4,6 +4,7 @@
 #include "ui_Horizon.h"
 #include "SmartEdit.h"
 #include "newFileDialog.h"
+#include "readinDialog.h"
 #include "Parser/MyParser.h"
 
 namespace Ui {
@@ -18,17 +19,18 @@ public:
 	~Horizon(); 
 	QLabel* curDateTimeWidget;
 	QTimer* timer;
+	bool tabNotEmpty();
 
 public slots:
 	void showCurDateTime();
-	void inputViewSyn_Tab(int index);
-	void inputViewSyn_List(int index);
+	void tab_Synto_List(int index);
 	void fUndo();
 	void fRedo();
 	void fCut();
 	void fCopy();
 	void fPaste();
 	void fSelectAll();
+	void fTest();
 
 protected:
 	void closeEvent(QCloseEvent* event)override;
@@ -41,13 +43,19 @@ private:
 	QList<SmartEdit*>* editors;//已打开的编辑框
 	QStringList file_names;//已打开的文件
 	QStringList file_paths;//对应路径
-	QTabWidget* tabWidget;//切换图，展示编辑框
-	SmartEdit* inputView;//编辑框、输入框
-	QTextEdit* outputView; //输出框
+	QTabWidget* inputTab;//切换图，展示编辑框
+	QTabWidget* outputTab;
+	QTextEdit* consoleView; //控制框，静态语义分析结果
+	QTextEdit* IEView;//解释执行框，中间变量值
 	MyParser* parser;
 	const char* SLR1Txt = ".//res//tools//SLR1.txt"
 		, * MyProductions = ".//res//tools//MyProductions.txt";
 	const QString productPath = ".//res//product//";
+	struct Var;
+
+	QList<Var*>* ReadVal(QString out);
+	void FindFirstPoint(QList<Var*>* vars, int points[]);
+	void Step(QList<Var*>* vars,int points[]);
 
 private slots:
 	int fQuit();

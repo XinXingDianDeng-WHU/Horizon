@@ -27,8 +27,9 @@ public:
 	SmartEdit(QTabWidget* parent = 0);
 	~SmartEdit();
 	int exceptionRow;
-	QString keyWordAtCursor() const;
 	int lineNumberAreaWidth();
+	QString keyWordAtCursor() const;
+	QList<int> IELines;
 	void lineNumberAreaPaintEvent(QPaintEvent* event);
 
 protected:
