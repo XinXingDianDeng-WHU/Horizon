@@ -110,17 +110,18 @@ void Horizon::fTest() {//<commit6>
 			}
 		}
 	}
+	if (process)
+		process->close();
 	qDebug() << standardOutput;
 	QList<Var*>* vars = ReadVal(standardOutput);
 	QList<int>* p = new QList<int>();
-	p->append(11);
+	p->append(15);
 	p->append(17);
-	qDebug() << FindFirstPoint(vars, p);
-	//qDebug() << Step(vars);
-	//qDebug() << Step(vars);
+	//qDebug() << FindFirstPoint(vars, p);
+	qDebug() << Step(vars);
+	qDebug() << Step(vars);
 	//IEView->append(standardOutput);
-	if (process)
-		process->close();
+	
 
 }
 /*变量结构体*/
@@ -150,12 +151,15 @@ QList<Horizon::Var*>* Horizon::ReadVal(QString out)
 			switch (n)
 			{
 			case 0:
-				line = temp;
-				temp.clear();
-				if (line == 'W')
-					n = 4;
-				else
+				if (temp != 'W') {
+					line = temp;
+					temp.clear();
 					n = 1;
+				}
+				else {
+					temp.clear();
+					n = 5;
+				}
 				break;
 			case 1:
 				tempVar = new Var();
@@ -191,6 +195,15 @@ QList<Horizon::Var*>* Horizon::ReadVal(QString out)
 				temp.clear();
 				n = 1;
 				break;
+			case 5:
+				tempVar = new Var();
+				tempVar->Line = line;
+				tempVar->Val = temp;
+				tempVar->Msg = "WRITE";
+				vars->append(tempVar);
+				temp.clear();
+				n = 1;
+				break;
 			default:
 				break;
 			}
@@ -210,19 +223,33 @@ int Horizon::FindFirstPoint(QList<Var*>* vars, QList<int>* points)
 	Var* temp = vars->at(0);
 	int line = 0;
 	while (!points->contains(temp->Line.toInt())) {
-		if (temp->Line == "W")
-			consoleView->append(temp->Msg);
-		vars->removeFirst();
-		temp = vars->at(0);
+		if (temp->Msg == "WRITE") {
+			consoleView->append(temp->Val);
+			outputTab->setCurrentIndex(0);
+		}
+		if (temp->Msg != NULL && temp->Msg != "WRITE") {
+			consoleView->append(temp->Msg + "!	" + QString::fromLocal8Bit("行号:") + temp->Line);
+			return -1;
+		}
+		vars->removeFirst(); 
+		if (!vars->empty())
+			temp = vars->at(0);
+		else
+			break;
 	}
 	line = temp->Line.toInt();
 	if (temp) {
+		IEView->clear();
 		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
 		while (line == temp->Line.toInt()) {
 			IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") + 
 				temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+			outputTab->setCurrentIndex(1);
 			vars->removeFirst();
-			temp = vars->at(0);
+			if (!vars->empty())
+				temp = vars->at(0);
+			else
+				break;
 		}
 	}
 	else
@@ -233,14 +260,29 @@ int Horizon::FindFirstPoint(QList<Var*>* vars, QList<int>* points)
 int Horizon::Step(QList<Var*>* vars)
 {
 	Var* temp = vars->at(0);
+	if (temp->Msg != NULL && temp->Msg != "WRITE") {
+		consoleView->append(temp->Msg + "!	" +QString::fromLocal8Bit("行号:") + temp->Line);
+		return -1;
+	}
 	int line = temp->Line.toInt(); 
 	if (temp) {
+		IEView->clear();
 		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
-		while (line == temp->Line.toInt()) {
-			IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") +
-				temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+		while (line == temp->Line.toInt()) {			
+			if (temp->Msg == "WRITE") {
+				consoleView->append(temp->Val);
+				outputTab->setCurrentIndex(0);
+			}
+			else {
+				IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") +
+					temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+				outputTab->setCurrentIndex(1);
+			}
 			vars->removeFirst();
-			temp = vars->at(0);
+			if (!vars->empty())
+				temp = vars->at(0);
+			else
+				break;
 		}
 	}
 	else
