@@ -1,7 +1,12 @@
-void red(){}
-int green(){}
-real purple(){}
-/struct aStruct{};
-/**/
-int orange(){}
+int Count(int i){
+while(i<100){
+i++;
+}
+}
+int main(){
+write(Count(50));
+write(60);
+int a = 3;
+write(a);
+}
 $

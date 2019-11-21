@@ -73,9 +73,6 @@
     <ClCompile Include="Parser\VarNameAST.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Parser\ExpAST.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Parser\IdItemAST.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -196,6 +193,9 @@
     <ClCompile Include="readinDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Parser\ExpAST.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -222,16 +222,10 @@
     <ClInclude Include="Parser\DecVarNameAST.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Parser\ExpAST.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Parser\FuncCallStmtAST.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Parser\SingleVarDecAST.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Parser\MyParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Parser\ValListAST.h">
@@ -355,6 +349,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Parser\Struct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\KaleidoscopeJIT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\MyParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\ExpAST.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

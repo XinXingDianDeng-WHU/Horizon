@@ -8,7 +8,6 @@ class StmtsAST :
 {
 public:
 	vector<StmtAST*>* stmtASTs;
-
 	StmtsAST();
 	virtual ~StmtsAST();
 

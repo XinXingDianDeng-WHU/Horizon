@@ -11,6 +11,14 @@ namespace Ui {
 	class Horizon;
 }
 
+struct Var
+{
+	QString Line = NULL;
+	QString Type = NULL;
+	QString Name = NULL;
+	QString Val = NULL;
+	QString Msg = NULL;
+};
 class Horizon : public QMainWindow{
 	Q_OBJECT
 
@@ -20,6 +28,7 @@ public:
 	QLabel* curDateTimeWidget;
 	QTimer* timer;
 	bool tabNotEmpty();
+	QString fTest();
 
 public slots:
 	void showCurDateTime();
@@ -30,7 +39,8 @@ public slots:
 	void fCopy();
 	void fPaste();
 	void fSelectAll();
-	void fTest();
+	void fAbout();
+	bool lineInvalid(QString curText);
 
 protected:
 	void closeEvent(QCloseEvent* event)override;
@@ -48,15 +58,16 @@ private:
 	QTextEdit* consoleView; //控制框，静态语义分析结果
 	QTextEdit* IEView;//解释执行框，中间变量值
 	MyParser* parser;
+	QList<Var*>* vars;
+
 	const char* SLR1Txt = ".//res//tools//SLR1.txt"
 		, * MyProductions = ".//res//tools//MyProductions.txt";
 	const QString productPath = ".//res//product//";
-	struct Var;
-	QList<Var*>* vars;
 
 	QList<Var*>* ReadVal(QString out);
-	int FindFirstPoint(QList<Var*>* vars, QList<int>* points);
+	int FindFirstPoint(QList<Var*>* vars, QList<int> points);
 	int Step(QList<Var*>* vars);
+
 
 private slots:
 	int fQuit();
@@ -66,5 +77,10 @@ private slots:
 	void fSave_All();
 	void fClose();
 	void fSafeRun();
+	void fCancelDebug();
 	void fStaticSemanticAnalysis();
+	void fBreak();
+	void fCancelBreak();
+	void fLineDebug();
+	void fPointDebug();
 };

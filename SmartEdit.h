@@ -5,6 +5,7 @@
 #include "Parser/MyParser.h"
 #include <QtWidgets>
 
+
 //词色二元表
 class HSynHighlighter : public QSyntaxHighlighter {
 	Q_OBJECT
@@ -27,9 +28,9 @@ public:
 	SmartEdit(QTabWidget* parent = 0);
 	~SmartEdit();
 	int exceptionRow;
+	QList<int> pointBlockNumbers;
 	int lineNumberAreaWidth();
 	QString keyWordAtCursor() const;
-	QList<int> IELines;
 	void lineNumberAreaPaintEvent(QPaintEvent* event);
 
 protected:

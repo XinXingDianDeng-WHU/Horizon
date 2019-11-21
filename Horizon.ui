@@ -95,9 +95,16 @@
     <addaction name="separator"/>
     <addaction name="actionClose"/>
     <addaction name="separator"/>
+    <addaction name="actionAbout"/>
+    <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
+    <property name="font">
+     <font>
+      <family>微软雅黑</family>
+     </font>
+    </property>
     <property name="title">
      <string>编辑</string>
     </property>
@@ -114,12 +121,25 @@
     <addaction name="actionSelect_All"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
+    <property name="font">
+     <font>
+      <family>微软雅黑</family>
+     </font>
+    </property>
     <property name="title">
      <string>调试</string>
     </property>
     <addaction name="actionRun"/>
     <addaction name="separator"/>
-    <addaction name="actionTest"/>
+    <addaction name="actionLineDebug"/>
+    <addaction name="separator"/>
+    <addaction name="actionPointDebug"/>
+    <addaction name="separator"/>
+    <addaction name="actionCancelDebug"/>
+    <addaction name="separator"/>
+    <addaction name="actionBreak"/>
+    <addaction name="separator"/>
+    <addaction name="actionCancelBreak"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -143,6 +163,14 @@
    </property>
   </widget>
   <widget class="QToolBar" name="toolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
@@ -162,21 +190,23 @@
    <addaction name="separator"/>
    <addaction name="actionClose"/>
    <addaction name="separator"/>
+   <addaction name="actionBreak"/>
+   <addaction name="separator"/>
+   <addaction name="actionCancelBreak"/>
+   <addaction name="separator"/>
+   <addaction name="actionPointDebug"/>
+   <addaction name="separator"/>
+   <addaction name="actionLineDebug"/>
+   <addaction name="separator"/>
+   <addaction name="actionCancelDebug"/>
+   <addaction name="separator"/>
    <addaction name="actionRun"/>
    <addaction name="separator"/>
    <addaction name="actionUndo"/>
    <addaction name="separator"/>
    <addaction name="actionRedo"/>
    <addaction name="separator"/>
-   <addaction name="actionCut"/>
-   <addaction name="separator"/>
-   <addaction name="actionCopy"/>
-   <addaction name="separator"/>
-   <addaction name="actionPaste"/>
-   <addaction name="separator"/>
-   <addaction name="actionSelect_All"/>
-   <addaction name="separator"/>
-   <addaction name="actionTest"/>
+   <addaction name="actionAbout"/>
   </widget>
   <action name="actionOpen">
    <property name="icon">
@@ -200,6 +230,9 @@
    </property>
   </action>
   <action name="actionSave">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Save" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Save.png</normaloff>:/Horizon/res/icon/Save.png</iconset>
@@ -221,6 +254,9 @@
    </property>
   </action>
   <action name="actionSave_All">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="SaveAll" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/SaveAll.png</normaloff>:/Horizon/res/icon/SaveAll.png</iconset>
@@ -242,6 +278,9 @@
    </property>
   </action>
   <action name="actionClose">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Close" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Close.png</normaloff>:/Horizon/res/icon/Close.png</iconset>
@@ -263,6 +302,9 @@
    </property>
   </action>
   <action name="actionUndo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Undo" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Undo.png</normaloff>:/Horizon/res/icon/Undo.png</iconset>
@@ -284,6 +326,9 @@
    </property>
   </action>
   <action name="actionRedo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Redo" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Redo.png</normaloff>:/Horizon/res/icon/Redo.png</iconset>
@@ -305,6 +350,9 @@
    </property>
   </action>
   <action name="actionCut">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Cut" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Cut.png</normaloff>:/Horizon/res/icon/Cut.png</iconset>
@@ -326,6 +374,9 @@
    </property>
   </action>
   <action name="actionCopy">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Copy" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Copy.png</normaloff>:/Horizon/res/icon/Copy.png</iconset>
@@ -347,6 +398,9 @@
    </property>
   </action>
   <action name="actionPaste">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Paste" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Paste.png</normaloff>:/Horizon/res/icon/Paste.png</iconset>
@@ -368,6 +422,9 @@
    </property>
   </action>
   <action name="actionSelect_All">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="SelectAll" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/SelectAll.png</normaloff>:/Horizon/res/icon/SelectAll.png</iconset>
@@ -389,12 +446,15 @@
    </property>
   </action>
   <action name="actionRun">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="Run" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/Run.png</normaloff>:/Horizon/res/icon/Run.png</iconset>
    </property>
    <property name="text">
-    <string>运行</string>
+    <string>调试</string>
    </property>
    <property name="toolTip">
     <string>运行</string>
@@ -427,7 +487,7 @@
     </font>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Q</string>
+    <string>Esc</string>
    </property>
   </action>
   <action name="actionNew">
@@ -451,16 +511,127 @@
     <string>Ctrl+N</string>
    </property>
   </action>
-  <action name="actionTest">
+  <action name="actionAbout">
    <property name="icon">
-    <iconset resource="Horizon.qrc">
+    <iconset theme="Test" resource="Horizon.qrc">
      <normaloff>:/Horizon/res/icon/About.png</normaloff>:/Horizon/res/icon/About.png</iconset>
    </property>
    <property name="text">
-    <string>exe测试</string>
+    <string>说明</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+     <pointsize>10</pointsize>
+    </font>
    </property>
    <property name="shortcut">
-    <string>F5</string>
+    <string>`</string>
+   </property>
+  </action>
+  <action name="actionLineDebug">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="LineDebug" resource="Horizon.qrc">
+     <normaloff>:/Horizon/res/icon/LineDebug.png</normaloff>:/Horizon/res/icon/LineDebug.png</iconset>
+   </property>
+   <property name="text">
+    <string>逐句执行</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>F11</string>
+   </property>
+  </action>
+  <action name="actionPointDebug">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="PointDebug" resource="Horizon.qrc">
+     <normaloff>:/Horizon/res/icon/PointDebug.png</normaloff>:/Horizon/res/icon/PointDebug.png</iconset>
+   </property>
+   <property name="text">
+    <string>断点执行</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>F10</string>
+   </property>
+  </action>
+  <action name="actionBreak">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="Break" resource="Horizon.qrc">
+     <normaloff>:/Horizon/res/icon/Break.png</normaloff>:/Horizon/res/icon/Break.png</iconset>
+   </property>
+   <property name="text">
+    <string>添加断点</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+  </action>
+  <action name="actionCancelBreak">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="CancelBreak" resource="Horizon.qrc">
+     <normaloff>:/Horizon/res/icon/CancelBreak.png</normaloff>:/Horizon/res/icon/CancelBreak.png</iconset>
+   </property>
+   <property name="text">
+    <string>取消断点</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>F2</string>
+   </property>
+  </action>
+  <action name="actionCancelDebug">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="CancelDebug" resource="Horizon.qrc">
+     <normaloff>:/Horizon/res/icon/CancelDebug.png</normaloff>:/Horizon/res/icon/CancelDebug.png</iconset>
+   </property>
+   <property name="text">
+    <string>停止调试</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>F9</string>
    </property>
   </action>
  </widget>

@@ -3,11 +3,11 @@
 #include <cstring>
 #include <atlstr.h>
 using namespace std;
-
+using namespace zx;
 int MyLexer::keyNum = 11;
 Token MyLexer::keyTokens[] = { Void,Int,Real,Char,Struct,If,Else,While,Return,Continue,Break};
 string MyLexer::keyWords[] = {"void","int","real","char","struct","if","else","while","return","continue","break"};
-
+using namespace zx;
 Token MyLexer::inKey(string str)
 {
 	for (int i = 0; i < keyNum; i++)
@@ -201,162 +201,162 @@ void MyLexer::buildSymbols()
 			symPointer = nullptr;
 			break;
 		case '-': // -   --
-			if (i + 1 < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + 1])) //负数
-			{
-				i++;
-				s += '-';
-				if (this->mySourceCode->buffer[i] == '0')
-				{
-					if (i + 1 < this->mySourceCode->length && this->mySourceCode->buffer[i + 1] != '.')
-					{
-						symPointer = new Symbol();
-						symPointer->row = row;
-						symPointer->token = Const_int;
-						symPointer->value = "-0";
-						i++;
-						if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
-						{
-							throw Exception(LexerEx, row, "number can not be followed by letter or _");
-						}
-						this->symVecPointer->push_back(symPointer);
-						symPointer = nullptr;
-						break;
-						//if (i + 2 < this->mySourceCode->length && !isNumber(this->mySourceCode->buffer[i + 2])) // 0
-						//{
-						//	symPointer = new Symbol();
-						//	symPointer->row = row;
-						//	symPointer->token = Const_int;
-						//	symPointer->value = "-0";
-						//	i++;
-						//	if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
-						//	{
-						//		throw Exception(LexerEx, row, "number can not be followed by letter or _");
-						//	}
-						//	this->symVecPointer->push_back(symPointer);
-						//	symPointer = nullptr;
-						//	break;
-						//}
-						//else
-						//{
-						//	throw Exception(LexerEx, row, "非法符号0");
-						//}
-					}
-					else if (i + 1 == this->mySourceCode->length)
-					{
-						throw Exception(LexerEx, row, "非法符号\"0\"");
-					}
-					else // 小数
-					{
-						j = 2;
-						if (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
-						{
-							s += "0.";
-							while (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
-							{
-								s += this->mySourceCode->buffer[i + j];
-								j++;
-							}
-							if (j == 2)
-							{
-								throw Exception(LexerEx, row, "非法字符");
-							}
-							symPointer = new Symbol();
-							symPointer->row = row;
-							symPointer->token = Const_real;
-							symPointer->value = s;
-							s = "";
-							i += j;
-							if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
-							{
-								throw Exception(LexerEx, row, "number can not be followed by letter or _");
-							}
-							j = 0;
-							this->symVecPointer->push_back(symPointer);
-							symPointer = nullptr;
-							break;
-						}
-						else
-						{
-							throw Exception(LexerEx, row, "非法符号\"-0.\"");
-						}
-					}
-				}
-				else // 不以0开头
-				{
-					j = 0;
-					while (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
-					{
-						s += this->mySourceCode->buffer[i + j];
-						j++;
-					}
-					if (i + j == this->mySourceCode->length)
-					{
-						throw Exception(LexerEx, row, "");
-					}
-					else// char不是数字
-					{
-						if (this->mySourceCode->buffer[i + j] == '.')//浮点数
-						{
-							j++; // i+j 指向.后面的字符
-							int curJ = j;
-							s += '.';
-							if (i + j == this->mySourceCode->length)
-							{
-								throw Exception(LexerEx, row, "");
-							}
-							else
-							{
-								while (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
-								{
-									s += this->mySourceCode->buffer[i + j];
-									j++;
-								}
-								if (i + j == this->mySourceCode->length)
-								{
-									throw Exception(LexerEx, row, "");
-								}
-								else // 浮点数
-								{
-									if (j == curJ)
-									{
-										throw Exception(LexerEx, row, "非法字符");
-									}
-									symPointer = new Symbol();
-									symPointer->row = row;
-									symPointer->token = Const_real;
-									symPointer->value = s;
-									s = "";
-									i += j;
-									if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
-									{
-										throw Exception(LexerEx, row, "number can not be followed by letter or _");
-									}
-									this->symVecPointer->push_back(symPointer);
-									symPointer = nullptr;
-									break;
-								}
-							}
-						}
-						else//整数
-						{
-							symPointer = new Symbol();
-							symPointer->row = row;
-							symPointer->token = Const_int;
-							symPointer->value = s;
-							s = "";
-							i += j;
-							if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
-							{
-								throw Exception(LexerEx, row, "number can not be followed by letter or _");
-							}
-							this->symVecPointer->push_back(symPointer);
-							symPointer = nullptr;
-							break;
-						}
-					}
-				}
-			}
-			else if (i + 1 < this->mySourceCode->length && this->mySourceCode->buffer[i + 1] == '-') // --
+			//if (i + 1 < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + 1])) //负数
+			//{
+			//	i++;
+			//	s += '-';
+			//	if (this->mySourceCode->buffer[i] == '0')
+			//	{
+			//		if (i + 1 < this->mySourceCode->length && this->mySourceCode->buffer[i + 1] != '.')
+			//		{
+			//			symPointer = new Symbol();
+			//			symPointer->row = row;
+			//			symPointer->token = Const_int;
+			//			symPointer->value = "-0";
+			//			i++;
+			//			if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
+			//			{
+			//				throw Exception(LexerEx, row, "number can not be followed by letter or _");
+			//			}
+			//			this->symVecPointer->push_back(symPointer);
+			//			symPointer = nullptr;
+			//			break;
+			//			//if (i + 2 < this->mySourceCode->length && !isNumber(this->mySourceCode->buffer[i + 2])) // 0
+			//			//{
+			//			//	symPointer = new Symbol();
+			//			//	symPointer->row = row;
+			//			//	symPointer->token = Const_int;
+			//			//	symPointer->value = "-0";
+			//			//	i++;
+			//			//	if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
+			//			//	{
+			//			//		throw Exception(LexerEx, row, "number can not be followed by letter or _");
+			//			//	}
+			//			//	this->symVecPointer->push_back(symPointer);
+			//			//	symPointer = nullptr;
+			//			//	break;
+			//			//}
+			//			//else
+			//			//{
+			//			//	throw Exception(LexerEx, row, "非法符号0");
+			//			//}
+			//		}
+			//		else if (i + 1 == this->mySourceCode->length)
+			//		{
+			//			throw Exception(LexerEx, row, "非法符号\"0\"");
+			//		}
+			//		else // 小数
+			//		{
+			//			j = 2;
+			//			if (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
+			//			{
+			//				s += "0.";
+			//				while (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
+			//				{
+			//					s += this->mySourceCode->buffer[i + j];
+			//					j++;
+			//				}
+			//				if (j == 2)
+			//				{
+			//					throw Exception(LexerEx, row, "非法字符");
+			//				}
+			//				symPointer = new Symbol();
+			//				symPointer->row = row;
+			//				symPointer->token = Const_real;
+			//				symPointer->value = s;
+			//				s = "";
+			//				i += j;
+			//				if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
+			//				{
+			//					throw Exception(LexerEx, row, "number can not be followed by letter or _");
+			//				}
+			//				j = 0;
+			//				this->symVecPointer->push_back(symPointer);
+			//				symPointer = nullptr;
+			//				break;
+			//			}
+			//			else
+			//			{
+			//				throw Exception(LexerEx, row, "非法符号\"-0.\"");
+			//			}
+			//		}
+			//	}
+			//	else // 不以0开头
+			//	{
+			//		j = 0;
+			//		while (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
+			//		{
+			//			s += this->mySourceCode->buffer[i + j];
+			//			j++;
+			//		}
+			//		if (i + j == this->mySourceCode->length)
+			//		{
+			//			throw Exception(LexerEx, row, "");
+			//		}
+			//		else// char不是数字
+			//		{
+			//			if (this->mySourceCode->buffer[i + j] == '.')//浮点数
+			//			{
+			//				j++; // i+j 指向.后面的字符
+			//				int curJ = j;
+			//				s += '.';
+			//				if (i + j == this->mySourceCode->length)
+			//				{
+			//					throw Exception(LexerEx, row, "");
+			//				}
+			//				else
+			//				{
+			//					while (i + j < this->mySourceCode->length && isNumber(this->mySourceCode->buffer[i + j]))
+			//					{
+			//						s += this->mySourceCode->buffer[i + j];
+			//						j++;
+			//					}
+			//					if (i + j == this->mySourceCode->length)
+			//					{
+			//						throw Exception(LexerEx, row, "");
+			//					}
+			//					else // 浮点数
+			//					{
+			//						if (j == curJ)
+			//						{
+			//							throw Exception(LexerEx, row, "非法字符");
+			//						}
+			//						symPointer = new Symbol();
+			//						symPointer->row = row;
+			//						symPointer->token = Const_real;
+			//						symPointer->value = s;
+			//						s = "";
+			//						i += j;
+			//						if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
+			//						{
+			//							throw Exception(LexerEx, row, "number can not be followed by letter or _");
+			//						}
+			//						this->symVecPointer->push_back(symPointer);
+			//						symPointer = nullptr;
+			//						break;
+			//					}
+			//				}
+			//			}
+			//			else//整数
+			//			{
+			//				symPointer = new Symbol();
+			//				symPointer->row = row;
+			//				symPointer->token = Const_int;
+			//				symPointer->value = s;
+			//				s = "";
+			//				i += j;
+			//				if (isAlpha(this->mySourceCode->buffer[i]) || this->mySourceCode->buffer[i] == '_')
+			//				{
+			//					throw Exception(LexerEx, row, "number can not be followed by letter or _");
+			//				}
+			//				this->symVecPointer->push_back(symPointer);
+			//				symPointer = nullptr;
+			//				break;
+			//			}
+			//		}
+			//	}
+			//}
+			if (i + 1 < this->mySourceCode->length && this->mySourceCode->buffer[i + 1] == '-') // --
 			{
 				symPointer = new Symbol();
 				symPointer->row = row;
@@ -476,7 +476,7 @@ void MyLexer::buildSymbols()
 			{
 				symPointer = new Symbol();
 				symPointer->row = row;
-				symPointer->token = Token::MoreOrEq;
+				symPointer->token = zx::Token::MoreOrEq;
 				symPointer->value = ">=";
 				i += 2;
 			}
@@ -858,14 +858,20 @@ SourceCode* MyLexer::readSourceCode(const char* fileName,bool isFile)
 		}
 		else
 		{
-			throw Exception(LexerEx, 1, "没有内容");
+			throw Exception(LexerEx, -1, "没有内容");
 		}
 		return sc;
 	}
 	else
 	{
 		SourceCode* sc = new SourceCode();
-		sc->length = strlen(fileName);
+		int length = strlen(fileName);
+		/*while (fileName[length] != '$')
+		{
+			length++;
+		}
+		length++;*/
+		sc->length = length;
 
 
 		//string str(fileName);
@@ -906,11 +912,16 @@ SourceCode* MyLexer::readSourceCode(const char* fileName,bool isFile)
 		}
 		else
 		{
-			throw Exception(LexerEx, 1, "没有内容");
+			throw Exception(LexerEx, -1, "没有内容");
 		}
 		return sc;
 	}
 }
+
+//SourceCode* MyLexer::readSourceCode(char* code)
+//{
+//
+//}
 void MyLexer::printResult()
 { 
 	string tokens[] = { "Plus","Minus","Star","Divide","Mode","PlusPlus","MinusMinus","More","Less","MoreOrEq","LessOrEq","Eq",

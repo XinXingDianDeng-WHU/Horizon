@@ -46,7 +46,7 @@ void HSynHighlighter::highlightBlock(const QString &text){
 
 /**************SmartEdit******************/
 //public functions
-SmartEdit::SmartEdit(QTabWidget *parent):QPlainTextEdit(parent)
+SmartEdit::SmartEdit(QTabWidget* parent) :QPlainTextEdit(parent)
 , hSynHighlighter(new HSynHighlighter(this->document()))
 , keyWordsCompleter(NULL)
 , lineNumberArea(new LineNumberArea(this))
@@ -72,7 +72,6 @@ SmartEdit::SmartEdit(QTabWidget *parent):QPlainTextEdit(parent)
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateLineNumberArea(QRect,int)));
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
-	connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightIELines()));
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(onCursorPosChanged()));
 
 	setFont(QFont("微软雅黑",14));
@@ -85,6 +84,7 @@ SmartEdit::~SmartEdit(){
 	delete hSynHighlighter;
 	delete keyWordsCompleter;
 	delete lineNumberArea;
+	pointBlockNumbers.clear();
 }
 
 #include <QByteArray>//此处位置不可调前
@@ -145,7 +145,6 @@ void SmartEdit::keyPressEvent(QKeyEvent *e){
 
 void SmartEdit::keyReleaseEvent(QKeyEvent* e) {
 	QPlainTextEdit::keyReleaseEvent(e);
-	int curLine = textCursor().blockNumber();
 	switch ( e->key()) {
 	case Qt::Key_ParenLeft:
 		this->textCursor().insertText(")");
@@ -155,12 +154,6 @@ void SmartEdit::keyReleaseEvent(QKeyEvent* e) {
 		this->textCursor().insertText("]"); break;
 	case  Qt::Key_BraceLeft:
 		this->textCursor().insertText("}"); break;
-	case Qt::Key_F1:
-		if(!IELines.contains(curLine))
-			IELines.append(curLine); break;
-	case Qt::Key_F2:
-		if (IELines.contains(curLine))
-			IELines.removeOne(curLine); break;
 	default: break;
 	}
 }
@@ -188,7 +181,7 @@ void SmartEdit::lineNumberAreaPaintEvent(QPaintEvent* event) {
 			} else {
 				painter.setBrush(QColor(Qt::red).lighter(128));
 			}
-			if (IELines.contains(blockNumber)) {
+			if (pointBlockNumbers.contains(blockNumber)) {
 				painter.drawEllipse(3, top+2, breakpointR, breakpointR);
 			}
 			QString number = QString::number(blockNumber + 1);

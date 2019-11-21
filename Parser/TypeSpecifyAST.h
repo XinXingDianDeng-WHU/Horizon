@@ -10,7 +10,7 @@ public:
 	//bool isArray;      这是具体VarAST决定
 	//int arrayLength = 0;  这是具体VarAST决定
 	std::string structName = "";//如果type是STRUCT，则存此struct的名称
-	Type toType = VoiD;//如果type是指针，则存指向的目标的类型
+	Type toType = ZXVOID;//如果type是指针，则存指向的目标的类型
 	
 
 	VarDecAST(Type type, IdListAST* idList);

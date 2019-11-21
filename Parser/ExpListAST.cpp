@@ -26,9 +26,9 @@ void ExpListAST::addExp(ExpAST* exp)
 			{
 				setTypes(exp);
 			}
-			if (this->expType == zx::Type::InT && exp->expType == zx::Type::ReaL)
+			if (this->expType == zx::Type::INT && exp->expType == zx::Type::REAL)
 			{
-				this->expType = zx::Type::ReaL;
+				this->expType = zx::Type::REAL;
 			}
 			this->exps->push_back(exp);
 		}
@@ -55,7 +55,7 @@ bool ExpListAST::check(ExpAST* exp)
 	{
 		if (this->expType == exp->expType)
 		{
-			if (this->expType == zx::Type::StrucT)
+			if (this->expType == zx::Type::STRUCT)
 			{
 				if (this->structName == exp->structName)
 				{
@@ -66,7 +66,7 @@ bool ExpListAST::check(ExpAST* exp)
 					return false;
 				}
 			}
-			else if (this->expType == zx::Type::PointeR)
+			else if (this->expType == zx::Type::POINTER)
 			{
 				if (this->pointerNum == exp->pointerNum && this->finalToType == exp->finalToType)
 				{
@@ -84,7 +84,7 @@ bool ExpListAST::check(ExpAST* exp)
 		}
 		else 
 		{
-			if (this->expType == zx::Type::ReaL && exp->expType == zx::Type::InT || this->expType == zx::Type::InT && exp->expType == zx::Type::ReaL)
+			if (this->expType == zx::Type::REAL && exp->expType == zx::Type::INT || this->expType == zx::Type::INT && exp->expType == zx::Type::REAL)
 			{
 				return true;
 			}

@@ -17,5 +17,9 @@
         <file>res/icon/Undo_.png</file>
         <file>res/icon/SaveAll.png</file>
         <file>res/icon/SelectAll.png</file>
+        <file>res/icon/LineDebug.png</file>
+        <file>res/icon/PointDebug.png</file>
+        <file>res/icon/CancelBreak.png</file>
+        <file>res/icon/CancelDebug.png</file>
     </qresource>
 </RCC>

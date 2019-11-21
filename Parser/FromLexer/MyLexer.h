@@ -5,6 +5,7 @@
 #include <iostream>
 //#include "..//AutoTools/Exception.cpp"
 using namespace std;
+//using namespace zx;
 enum ExType { LexerEx, ParserEx, StaticSemaEx, DynamicSemaEx, OtherEx };
 
 struct SourceCode
@@ -23,13 +24,40 @@ struct Exception
 		this->row = row;
 		this->detail = detail;
 	}
+	/*void print()
+	{
+		std::cout << "µÚ" << this->row << "ÐÐ³ö´í£º";
+		std::cout << '(';
+		switch (this->type)
+		{
+		case LexerEx:
+			std::cout << "´Ê·¨´íÎó";
+			break;
+		case ParserEx:
+			std::cout << "Óï·¨´íÎó";
+			break;
+		case StaticSemaEx:
+			std::cout << "¾²Ì¬ÓïÒå´íÎó";
+			break;
+		case DynamicSemaEx:
+			std::cout << "¶¯Ì¬ÓïÒå´íÎó";
+			break;
+		case OtherEx:
+			std::cout << "ÆäËû´íÎó";
+			break;
+		}
+		std::cout << ')';
+		std::cout << std::endl;
+		std::cout << "    " << detail << std::endl;
+		exit(0);
+	}*/
 	string print()
 	{
 		string exceptionType;
 		switch (this->type)
 		{
 		case LexerEx:
-			exceptionType="Lexer Exception"; break;
+			exceptionType = "Lexer Exception"; break;
 		case ParserEx:
 			exceptionType = "Parser Exception"; break;
 		case StaticSemaEx:
@@ -46,7 +74,7 @@ struct Symbol
 {
 	int row = 0;
 	string value = "";
-	Token token;
+	zx::Token token;
 };
 
 class MyLexer
@@ -56,12 +84,13 @@ private:
 	int curSymIndex = 0;
 	vector<Symbol*>* symVecPointer = nullptr;
 	static string keyWords[];
-	static Token keyTokens[];
+	static zx::Token keyTokens[];
 	static int keyNum;
 
 	SourceCode* readSourceCode(const char* fileName,bool isFile);
+	SourceCode* readSourceCode(char* code);
 	void buildSymbols();
-	static Token inKey(string str);
+	static zx::Token inKey(string str);
 
 
 public:

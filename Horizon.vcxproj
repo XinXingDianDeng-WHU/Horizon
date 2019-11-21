@@ -46,6 +46,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -276,6 +277,7 @@
     <ClInclude Include="Parser\IdListAST.h" />
     <ClInclude Include="Parser\IfStmtAST.h" />
     <ClInclude Include="Parser\IntAST.h" />
+    <ClInclude Include="Parser\KaleidoscopeJIT.h" />
     <ClInclude Include="Parser\MyParser.h" />
     <ClInclude Include="Parser\NumberAST.h" />
     <ClInclude Include="Parser\OperatorAST.h" />

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #define STATIC 0
+
 double str2Double(string s)
 {
 	double d;
@@ -144,7 +145,19 @@ MyParser::MyParser(const char* sourceCodeFile, const char* SLR1File, const char*
 	definedFuncs = new map<string, vector<FuncDefineAST*>>();
 	var_table = new map<VarIndex, Variable*>();
 }
-
+void MyParser::clearVarLevelMoreThan(int level) {
+	if (var_table != nullptr&&level >= 0) {
+		for (map<VarIndex, Variable*>::iterator iter = var_table->begin(); iter != var_table->end(); ) {
+			if (iter->first.level > level) {
+				delete iter->second;
+				var_table->erase(iter++);
+			}
+			else {
+				iter++;
+			}
+		}
+	}
+}
 
 void MyParser::readpro2index(const char* proFileName)
 {
@@ -174,6 +187,75 @@ void MyParser::readpro2index(const char* proFileName)
 
 MyParser::~MyParser()
 {
+	/*
+	if (SLR1_table != nullptr) {
+		delete SLR1_table;
+		SLR1_table = nullptr;
+	}
+	if (symStack != nullptr) {
+		for (int i = 0; i < symStack->size(); i++) {
+			AST* tSym = symStack->at(i);
+			if (tSym != nullptr) {
+				delete tSym;
+			}
+		}
+		delete symStack;
+		symStack = nullptr;
+	}
+	if (sourceSymList != nullptr) {
+		for (int i = 0; i < sourceSymList->size(); i++) {
+			Symbol* symbol = sourceSymList->at(i);
+			if (symbol != nullptr) {
+				delete symbol;
+			}
+		}
+		delete sourceSymList;
+		sourceSymList = nullptr;
+	}
+	if (pro2index != nullptr) {
+		delete pro2index;
+		pro2index = nullptr;
+	}
+	if (productions != nullptr) {
+		for (int i = 0; i < productions->size(); i++) {
+			Production* pro = productions->at(i);
+			if (pro != nullptr) {
+				delete pro;
+			}
+		}
+		delete productions;
+		productions = nullptr;
+	}
+	if (token2strP != nullptr) {
+		delete token2strP;
+		token2strP = nullptr;
+	}
+	if (definedStructs != nullptr) {
+		delete definedStructs;
+		definedStructs = nullptr;
+	}
+	if (definedFuncs != nullptr) {
+		delete definedFuncs;
+		definedFuncs = nullptr;
+	}
+	if (var_table != nullptr) {
+		map<VarIndex, Variable*>::iterator iter;
+		for (iter = var_table->begin(); iter != var_table->end(); iter++) {
+			if (iter->second != nullptr) {
+				delete iter->second;
+			}
+		}
+		delete var_table;
+		var_table = nullptr;
+	}
+	if (usedStructName != nullptr) {
+		delete usedStructName;
+		usedStructName = nullptr;
+	}
+	if (root != nullptr) {
+		delete root;
+		root = nullptr;
+	}*/
 }
 void MyParser::push(AST* ast, int state)
 {
@@ -189,6 +271,30 @@ AST* MyParser::pop()
 	stackTop--;
 	return ret;
 }
+bool expConst(ExpAST* exp) {
+	if (exp->type == 0 || exp->type == 2) {
+		while (exp->type == 0) {
+			exp = exp->left;
+		}
+		if (exp->type != 2) {
+			return false;
+		}
+		return true;
+	}
+	else if(exp->type == 1){
+		if (expConst(exp->left) && expConst(exp->right)) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	else {
+		return false;
+	}
+}
+
+
 void funcDataHandle(TypeSpecifyAST*& funcTypeAST, IdentifierAST*& funcId, FormalParaListAST*& funcFparaList, int& state, Token token)
 {
 	switch (state)//0 表示开始 ， 1表示移进type ， 2表示移进id ，3表示移进了(,确认了此为函数定义
@@ -383,25 +489,25 @@ void MyParser::Parse()
 				ast = nullptr;
 				break;
 			case Token::Void:
-				ast = new TypeAST(Type::VoiD);
+				ast = new TypeAST(zx::Type::ZXVOID);
 				ast->setRow(row);
 				this->push(ast, action.aim);
 				ast = nullptr;
 				break;
 			case Token::Int:
-				ast = new TypeAST(Type::InT);
+				ast = new TypeAST(zx::Type::INT);
 				ast->setRow(row);
 				this->push(ast, action.aim);
 				ast = nullptr;
 				break;
 			case Token::Real:
-				ast = new TypeAST(Type::ReaL);
+				ast = new TypeAST(zx::Type::REAL);
 				ast->setRow(row);
 				this->push(ast, action.aim);
 				ast = nullptr;
 				break;
 			case Token::Char:
-				ast = new TypeAST(Type::ChaR);
+				ast = new TypeAST(zx::Type::CHAR);
 				ast->setRow(row);
 				this->push(ast, action.aim);
 				ast = nullptr;
@@ -419,6 +525,7 @@ void MyParser::Parse()
 				this->push(ast, action.aim);
 				ast = nullptr;
 				curLevel--;
+				clearVarLevelMoreThan(curLevel);
 				break;
 			case Token::Ls:
 				ast = new OtherSymAST(Token::Ls);
@@ -514,7 +621,7 @@ void MyParser::Parse()
 				ast = new IdentifierAST(value);
 				ast->setRow(row);
 				this->push(ast, action.aim);
-				if (curLevel == 0)
+				if (curLevel == 0 && state != 3)
 				{
 					funcId = (IdentifierAST*)ast;
 				}
@@ -709,7 +816,7 @@ void MyParser::Parse()
 										DirectTypeSpecifyAST* directDef = (DirectTypeSpecifyAST*)(defItem->typeSpecifyAST);
 										if(directDef->type->type == directExt->type->type)
 										{
-											if (directExt->type->type == zx::Type::StrucT)
+											if (directExt->type->type == zx::Type::STRUCT)
 											{
 												if (directExt->structNameIdentifier->identifier == directDef->structNameIdentifier->identifier)
 												{//如果结构体名相同，则表示此项相同，继续看下一个参数
@@ -752,7 +859,7 @@ void MyParser::Parse()
 											DirectTypeSpecifyAST* directDef = pointerTypeSpecifyDef->directTypeSpecifyAST;
 											if (directDef->type->type == directExt->type->type)
 											{
-												if (directExt->type->type == zx::Type::StrucT)
+												if (directExt->type->type == zx::Type::STRUCT)
 												{
 													if (directExt->structNameIdentifier->identifier == directDef->structNameIdentifier->identifier)
 													{//如果结构体名相同，则表示此项相同，继续看下一个参数
@@ -896,12 +1003,12 @@ void MyParser::Parse()
 					if (typeSpecify->son == 0)//非指针
 					{
 						DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)typeSpecify;
-						if (dTypeSpecify->type->type == zx::Type::StrucT)//结构体
+						if (dTypeSpecify->type->type == zx::Type::STRUCT)//结构体
 						{
 							string structName = dTypeSpecify->structNameIdentifier->identifier;
 							if (definedStructs->count(structName) == 1)
 							{
-								Variable* var = new Variable(zx::Type::StrucT, name, structName, isArr);
+								Variable* var = new Variable(zx::Type::STRUCT, name, structName, isArr);
 								(*var_table)[index] = var;
 							}
 							else
@@ -911,7 +1018,7 @@ void MyParser::Parse()
 						}
 						else//非结构体
 						{
-							if (dTypeSpecify->type->type == zx::Type::VoiD)
+							if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 							{
 								throw Exception(StaticSemaEx, dTypeSpecify->row, "不能定义void类型的变量");
 							}
@@ -924,11 +1031,11 @@ void MyParser::Parse()
 						PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)typeSpecify;
 						DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 						PointerAST* pointer = pTypeSpecify->pointerAST;
-						if (dTypeSpecify->type->type == zx::Type::VoiD)
+						if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 						{
 							throw Exception(StaticSemaEx, dTypeSpecify->row, "不能定义void类型的指针变量");
 						}
-						else if (dTypeSpecify->type->type == zx::Type::StrucT)
+						else if (dTypeSpecify->type->type == zx::Type::STRUCT)
 						{
 							string finalToStructName = dTypeSpecify->structNameIdentifier->identifier;
 							if (definedStructs->count(finalToStructName) == 1)
@@ -936,17 +1043,17 @@ void MyParser::Parse()
 
 								if (pointer->starNum > 1)
 								{
-									Variable* var = new Variable(zx::Type::PointeR, name, zx::Type::PointeR, isArr);
+									Variable* var = new Variable(zx::Type::POINTER, name, zx::Type::POINTER, isArr);
 									var->setPointerNum(pointer->starNum);
-									var->setFinalToType(zx::Type::StrucT);
+									var->setFinalToType(zx::Type::STRUCT);
 									var->setFinalStructName(finalToStructName);
 									(*var_table)[index] = var;
 								}
 								else
 								{
-									Variable* var = new Variable(zx::Type::PointeR, name, zx::Type::StrucT, isArr);
+									Variable* var = new Variable(zx::Type::POINTER, name, zx::Type::STRUCT, isArr);
 									var->setPointerNum(pointer->starNum);
-									var->setFinalToType(zx::Type::StrucT);
+									var->setFinalToType(zx::Type::STRUCT);
 									var->setFinalStructName(finalToStructName);
 									(*var_table)[index] = var;
 								}
@@ -960,14 +1067,14 @@ void MyParser::Parse()
 						{
 							if (pointer->starNum > 1)
 							{
-								Variable* var = new Variable(zx::Type::PointeR, name, zx::Type::PointeR, isArr);
+								Variable* var = new Variable(zx::Type::POINTER, name, zx::Type::POINTER, isArr);
 								var->setPointerNum(pointer->starNum);
 								var->setFinalToType(dTypeSpecify->type->type);
 								(*var_table)[index] = var;
 							}
 							else
 							{
-								Variable* var = new Variable(zx::Type::PointeR, name, dTypeSpecify->type->type, isArr);
+								Variable* var = new Variable(zx::Type::POINTER, name, dTypeSpecify->type->type, isArr);
 								var->setPointerNum(pointer->starNum);
 								var->setFinalToType(dTypeSpecify->type->type);
 								(*var_table)[index] = var;
@@ -1016,12 +1123,12 @@ void MyParser::Parse()
 					if (typeSpecify->son == 0)//非指针
 					{
 						DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)typeSpecify;
-						if (dTypeSpecify->type->type == zx::Type::StrucT)//结构体
+						if (dTypeSpecify->type->type == zx::Type::STRUCT)//结构体
 						{
 							string structName = dTypeSpecify->structNameIdentifier->identifier;
 							if (definedStructs->count(structName) == 1)
 							{
-								Variable* var = new Variable(zx::Type::StrucT, name, structName, isArr);
+								Variable* var = new Variable(zx::Type::STRUCT, name, structName, isArr);
 								(*var_table)[index] = var;
 							}
 							else
@@ -1031,7 +1138,7 @@ void MyParser::Parse()
 						}
 						else//非结构体
 						{
-							if (dTypeSpecify->type->type == zx::Type::VoiD)
+							if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 							{
 								throw Exception(StaticSemaEx, dTypeSpecify->row, "不能定义void类型的变量");
 							}
@@ -1044,11 +1151,11 @@ void MyParser::Parse()
 						PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)typeSpecify;
 						DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 						PointerAST* pointer = pTypeSpecify->pointerAST;
-						if (dTypeSpecify->type->type == zx::Type::VoiD)
+						if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 						{
 							throw Exception(StaticSemaEx, dTypeSpecify->row, "不能定义void类型的指针变量");
 						}
-						else if (dTypeSpecify->type->type == zx::Type::StrucT)
+						else if (dTypeSpecify->type->type == zx::Type::STRUCT)
 						{
 							string finalToStructName = dTypeSpecify->structNameIdentifier->identifier;
 							if (definedStructs->count(finalToStructName) == 1)
@@ -1056,17 +1163,17 @@ void MyParser::Parse()
 								
 								if (pointer->starNum > 1)
 								{
-									Variable* var = new Variable(zx::Type::PointeR, name, zx::Type::PointeR, isArr);
+									Variable* var = new Variable(zx::Type::POINTER, name, zx::Type::POINTER, isArr);
 									var->setPointerNum(pointer->starNum);
-									var->setFinalToType(zx::Type::StrucT);
+									var->setFinalToType(zx::Type::STRUCT);
 									var->setFinalStructName(finalToStructName);
 									(*var_table)[index] = var;
 								}
 								else
 								{
-									Variable* var = new Variable(zx::Type::PointeR, name, zx::Type::StrucT, isArr);
+									Variable* var = new Variable(zx::Type::POINTER, name, zx::Type::STRUCT, isArr);
 									var->setPointerNum(pointer->starNum);
-									var->setFinalToType(zx::Type::StrucT);
+									var->setFinalToType(zx::Type::STRUCT);
 									var->setFinalStructName(finalToStructName);
 									(*var_table)[index] = var;
 								}
@@ -1080,14 +1187,14 @@ void MyParser::Parse()
 						{
 							if (pointer->starNum > 1)
 							{
-								Variable* var = new Variable(zx::Type::PointeR, name, zx::Type::PointeR, isArr);
+								Variable* var = new Variable(zx::Type::POINTER, name, zx::Type::POINTER, isArr);
 								var->setPointerNum(pointer->starNum);
 								var->setFinalToType(dTypeSpecify->type->type);
 								(*var_table)[index] = var;
 							}
 							else
 							{
-								Variable* var = new Variable(zx::Type::PointeR, name, dTypeSpecify->type->type, isArr);
+								Variable* var = new Variable(zx::Type::POINTER, name, dTypeSpecify->type->type, isArr);
 								var->setPointerNum(pointer->starNum);
 								var->setFinalToType(dTypeSpecify->type->type);
 								(*var_table)[index] = var;
@@ -1174,7 +1281,7 @@ void MyParser::Parse()
 				//create <direct_type_specify>
 				DirectTypeSpecifyAST* directTypeSpecify = new DirectTypeSpecifyAST(id);
 				directTypeSpecify->setRow(structSym->row);
-				TypeAST* type = new TypeAST(zx::Type::StrucT);
+				TypeAST* type = new TypeAST(zx::Type::STRUCT);
 				directTypeSpecify->type = type;
 				//静态语义分析 start
 #ifdef STATIC
@@ -1237,15 +1344,33 @@ void MyParser::Parse()
 				
 				//静态语义检查 start
 #ifdef STATIC
+				if (curLevel == 0 || funcId == nullptr) {
+					for (int i = 0; i < idList->idItemASTs->size(); i++) {
+						IdItemAST* item = idList->idItemASTs->at(i);
+						if (item->exp != nullptr) {
+							if (!expConst(item->exp)) {
+								throw Exception(StaticSemaEx, item->row, "全局变量只能用常量赋值!");
+							}
+						}
+						else if (item->exps != nullptr) {
+							for (int j = 0; j < item->exps->exps->size(); j++) {
+								ExpAST* exp = item->exps->exps->at(j);
+								if (!expConst(exp)) {
+									throw Exception(StaticSemaEx, item->row, "全局变量只能用常量赋值!");
+								}
+							}
+						}
+					}
+				}
 				if (typeSpecify->son == 0)//非指针
 				{
 					DirectTypeSpecifyAST* dtypeSpecify = (DirectTypeSpecifyAST*)typeSpecify;
 					zx::Type type = dtypeSpecify->type->type;
-					if (type == zx::Type::VoiD)
+					if (type == zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, typeSpecify->row, "不能定义void类型的变量");
 					}
-					if (type == zx::Type::StrucT)//是结构体
+					if (type == zx::Type::STRUCT)//是结构体
 					{
 						for (int i = 0; i < idList->idItemASTs->size(); i++)
 						{
@@ -1285,7 +1410,7 @@ void MyParser::Parse()
 								Variable* variable = new Variable(type, name, structName, isArr);
 								if (item->exps != nullptr)
 								{
-									if (item->exps->expType != zx::Type::StrucT || item->exps->structName != dtypeSpecify->structNameIdentifier->identifier)
+									if (item->exps->expType != zx::Type::STRUCT || item->exps->structName != dtypeSpecify->structNameIdentifier->identifier)
 									{
 										throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 									}
@@ -1305,7 +1430,7 @@ void MyParser::Parse()
 							{
 								if (item->exp != nullptr)
 								{
-									if (item->exp->expType != zx::Type::StrucT || item->exp->structName != dtypeSpecify->structNameIdentifier->identifier)
+									if (item->exp->expType != zx::Type::STRUCT || item->exp->structName != dtypeSpecify->structNameIdentifier->identifier)
 									{
 										throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 									}
@@ -1364,7 +1489,7 @@ void MyParser::Parse()
 								{
 									if (item->exps->expType != dtypeSpecify->type->type)
 									{
-										if (!(dtypeSpecify->type->type == zx::Type::ReaL && item->exps->expType == zx::Type::InT))
+										if (!(dtypeSpecify->type->type == zx::Type::REAL && item->exps->expType == zx::Type::INT))
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1382,7 +1507,7 @@ void MyParser::Parse()
 								{
 									if (item->exp->expType != dtypeSpecify->type->type)
 									{
-										if (!(dtypeSpecify->type->type == zx::Type::ReaL && item->exp->expType == zx::Type::InT))
+										if (!(dtypeSpecify->type->type == zx::Type::REAL && item->exp->expType == zx::Type::INT))
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1402,17 +1527,17 @@ void MyParser::Parse()
 				{
 					PointerTypeSpecifyAST* ptypeSpecify = (PointerTypeSpecifyAST*)typeSpecify;
 					DirectTypeSpecifyAST* dtypeSpecify = ptypeSpecify->directTypeSpecifyAST;
-					if (dtypeSpecify->type->type == zx::Type::VoiD)
+					if (dtypeSpecify->type->type == zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, typeSpecify->row, "不能定义void类型的指针变量");
 					}
 					PointerAST* pointer = ptypeSpecify->pointerAST;
 					if (pointer->starNum > 1)//指针指向的对象是指针
 					{
-						zx::Type type = zx::Type::PointeR;
-						zx::Type toType = zx::Type::PointeR;
+						zx::Type type = zx::Type::POINTER;
+						zx::Type toType = zx::Type::POINTER;
 						zx::Type finalToType = dtypeSpecify->type->type;
-						if (finalToType == zx::Type::StrucT)//最终指向结构体
+						if (finalToType == zx::Type::STRUCT)//最终指向结构体
 						{
 							string finalStructName = dtypeSpecify->structNameIdentifier->identifier;
 							for (int i = 0; i < idList->idItemASTs->size(); i++)
@@ -1461,11 +1586,11 @@ void MyParser::Parse()
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
-										if (item->exps->expType != zx::Type::PointeR)//没有对具体指向什么类型做检查
+										if (item->exps->expType != zx::Type::POINTER)//没有对具体指向什么类型做检查
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
-										else if (item->exps->finalToType != zx::Type::StrucT || item->exps->structName != dtypeSpecify->structNameIdentifier->identifier)
+										else if (item->exps->finalToType != zx::Type::STRUCT || item->exps->structName != dtypeSpecify->structNameIdentifier->identifier)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1474,7 +1599,7 @@ void MyParser::Parse()
 										variable->setArratLength(arrayLength);
 									}
 									variable->setPointerNum(pointer->starNum);
-									variable->setFinalToType(zx::Type::StrucT);
+									variable->setFinalToType(zx::Type::STRUCT);
 									variable->setFinalStructName(finalStructName);
 									(*var_table)[index] = variable;
 								}
@@ -1482,11 +1607,11 @@ void MyParser::Parse()
 								{
 									if (item->exp != nullptr)
 									{
-										if (item->exp->expType != zx::Type::PointeR)
+										if (item->exp->expType != zx::Type::POINTER)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
-										else if (item->exp->finalToType != zx::Type::StrucT || item->exp->structName != dtypeSpecify->structNameIdentifier->identifier)
+										else if (item->exp->finalToType != zx::Type::STRUCT || item->exp->structName != dtypeSpecify->structNameIdentifier->identifier)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1501,7 +1626,7 @@ void MyParser::Parse()
 									}
 									Variable* variable = new Variable(type, name, toType, isArr);
 									variable->setPointerNum(pointer->starNum);
-									variable->setFinalToType(zx::Type::StrucT);
+									variable->setFinalToType(zx::Type::STRUCT);
 									variable->setFinalStructName(finalStructName);
 									(*var_table)[index] = variable;
 								}
@@ -1554,7 +1679,7 @@ void MyParser::Parse()
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
-										if (item->exps->expType != zx::Type::PointeR)//没有对具体指向什么类型做检查
+										if (item->exps->expType != zx::Type::POINTER)//没有对具体指向什么类型做检查
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1574,7 +1699,7 @@ void MyParser::Parse()
 								{
 									if (item->exp != nullptr)
 									{
-										if (item->exp->expType != zx::Type::PointeR)
+										if (item->exp->expType != zx::Type::POINTER)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1602,10 +1727,10 @@ void MyParser::Parse()
 					}
 					else if(pointer->starNum == 1)//指向的对象不是指针
 					{
-						zx::Type type = zx::Type::PointeR;
+						zx::Type type = zx::Type::POINTER;
 						zx::Type toType = dtypeSpecify->type->type;
 						zx::Type finalToType = toType;
-						if (finalToType == zx::Type::StrucT)//最终指向结构体
+						if (finalToType == zx::Type::STRUCT)//最终指向结构体
 						{
 							string finalStructName = dtypeSpecify->structNameIdentifier->identifier;
 							for (int i = 0; i < idList->idItemASTs->size(); i++)
@@ -1649,11 +1774,11 @@ void MyParser::Parse()
 									Variable* variable = new Variable(type, name, toType, isArr);
 									if (item->exps != nullptr)
 									{
-										if (item->exps->expType != zx::Type::PointeR)//没有对具体指向什么类型做检查
+										if (item->exps->expType != zx::Type::POINTER)//没有对具体指向什么类型做检查
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
-										else if (item->exps->finalToType != zx::Type::StrucT || item->exps->structName != dtypeSpecify->structNameIdentifier->identifier)
+										else if (item->exps->finalToType != zx::Type::STRUCT || item->exps->structName != dtypeSpecify->structNameIdentifier->identifier)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1666,7 +1791,7 @@ void MyParser::Parse()
 										variable->setArratLength(arrayLength);
 									}
 									variable->setPointerNum(pointer->starNum);
-									variable->setFinalToType(zx::Type::StrucT);
+									variable->setFinalToType(zx::Type::STRUCT);
 									variable->setFinalStructName(finalStructName);
 									(*var_table)[index] = variable;
 								}
@@ -1674,11 +1799,11 @@ void MyParser::Parse()
 								{
 									if (item->exp != nullptr)
 									{
-										if (item->exp->expType != zx::Type::PointeR)
+										if (item->exp->expType != zx::Type::POINTER)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
-										else if (item->exp->finalToType != zx::Type::StrucT || item->exp->structName != dtypeSpecify->structNameIdentifier->identifier)
+										else if (item->exp->finalToType != zx::Type::STRUCT || item->exp->structName != dtypeSpecify->structNameIdentifier->identifier)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1693,13 +1818,13 @@ void MyParser::Parse()
 									}
 									Variable* variable = new Variable(type, name, toType, isArr);
 									variable->setPointerNum(pointer->starNum);
-									variable->setFinalToType(zx::Type::StrucT);
+									variable->setFinalToType(zx::Type::STRUCT);
 									variable->setFinalStructName(finalStructName);
 									(*var_table)[index] = variable;
 								}
 							}
 						}
-						else if (finalToType == zx::Type::ChaR) {
+						else if (finalToType == zx::Type::CHAR) {
 							for (int i = 0; i < idList->idItemASTs->size(); i++) {
 								IdItemAST* item = idList->idItemASTs->at(i);
 								string name = item->decVarNameAST->identifier->identifier;//变量名
@@ -1732,7 +1857,7 @@ void MyParser::Parse()
 											}
 										}
 									}
-									if (item->exps!= nullptr && item->exps->expType == zx::Type::StrinG) {//char* cArr[] = {"aa","bb"}
+									if (item->exps!= nullptr && item->exps->expType == zx::Type::STRING) {//char* cArr[] = {"aa","bb"}
 										Variable* variable = new Variable(type, name, toType, isArr);
 										int arrayLength = 0;
 										arrayLength = item->exps->exps->size();
@@ -1745,7 +1870,7 @@ void MyParser::Parse()
 										Variable* variable = new Variable(type, name, toType, isArr);
 										if (item->exps != nullptr)
 										{
-											if (item->exps->expType != zx::Type::PointeR)//没有对具体指向什么类型做检查
+											if (item->exps->expType != zx::Type::POINTER)//没有对具体指向什么类型做检查
 											{
 												throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 											}
@@ -1767,7 +1892,7 @@ void MyParser::Parse()
 									}
 								}
 								else {//不是数组
-									if (item->exp != nullptr && item->exp->expType == zx::Type::StrinG) {//char * a = string
+									if (item->exp != nullptr && item->exp->expType == zx::Type::STRING) {//char * a = string
 										Variable* variable = new Variable(type, name, toType, isArr);
 										variable->setPointerNum(pointer->starNum);
 										variable->setFinalToType(finalToType);
@@ -1776,7 +1901,7 @@ void MyParser::Parse()
 									else {//char * a = char*
 										if (item->exp != nullptr)
 										{
-											if (item->exp->expType != zx::Type::PointeR)
+											if (item->exp->expType != zx::Type::POINTER)
 											{
 												throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 											}
@@ -1845,7 +1970,7 @@ void MyParser::Parse()
 									Variable* variable = new Variable(type, name, toType, isArr);
 									if (item->exps != nullptr)
 									{
-										if (item->exps->expType != zx::Type::PointeR)//没有对具体指向什么类型做检查
+										if (item->exps->expType != zx::Type::POINTER)//没有对具体指向什么类型做检查
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1869,7 +1994,7 @@ void MyParser::Parse()
 								{
 									if (item->exp != nullptr)
 									{
-										if (item->exp->expType != zx::Type::PointeR)
+										if (item->exp->expType != zx::Type::POINTER)
 										{
 											throw Exception(ExType::StaticSemaEx, item->decVarNameAST->identifier->row, "初值类型不匹配!");
 										}
@@ -1978,6 +2103,7 @@ void MyParser::Parse()
 				//create <dec_var_name>
 				DecVarNameAST* decVarName = new DecVarNameAST(id);
 				decVarName->setRow(id->row);
+				decVarName->setLevel(curLevel);
 				tree = decVarName;
 				GoTo(tree, "<dec_var_name>");
 			}
@@ -1992,6 +2118,7 @@ void MyParser::Parse()
 				//create <dec_var_name>
 				DecVarNameAST* decVarName = new DecVarNameAST(id, true);
 				decVarName->setRow(id->row);
+				decVarName->setLevel(curLevel);
 				tree = decVarName;
 				delete rS;
 				delete lS;
@@ -2010,6 +2137,7 @@ void MyParser::Parse()
 				//create <dec_var_name>
 				DecVarNameAST* decVarName = new DecVarNameAST(id, true,integer);
 				decVarName->setRow(id->row);
+				decVarName->setLevel(curLevel);
 				tree = decVarName;
 				delete rS;
 				delete lS;
@@ -2101,11 +2229,11 @@ void MyParser::Parse()
 				if (type->son == 0)
 				{
 					DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)type;
-					if (dTypeSpecify->type->type == zx::Type::VoiD)
+					if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, type->row, "不能定义void类型的变量");
 					}
-					else if (dTypeSpecify->type->type == zx::Type::StrucT)
+					else if (dTypeSpecify->type->type == zx::Type::STRUCT)
 					{
 						throw Exception(StaticSemaEx, semi->row, "结构体内不能声明结构体变量!");
 					}
@@ -2114,7 +2242,7 @@ void MyParser::Parse()
 				{
 					PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)type;
 					DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
-					if (dTypeSpecify->type->type == zx::Type::VoiD)
+					if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, type->row, "不能定义void类型的指针变量");
 					}
@@ -2161,18 +2289,18 @@ void MyParser::Parse()
 				else
 				{
 					DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)type;
-					if (dTypeSpecify->type->type == zx::Type::VoiD)
+					if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, type->row, "不能定义void类型的变量");
 					}
-					if (dTypeSpecify->type->type == zx::Type::StrucT)
+					if (dTypeSpecify->type->type == zx::Type::STRUCT)
 					{
 						throw Exception(StaticSemaEx, assign->row, "结构体内不能声明结构体变量!");
 					}
 				}
 				if (val->charAST != nullptr)
 				{
-					if (type->son != 0 || ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::ChaR)
+					if (type->son != 0 || ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::CHAR)
 					{
 						throw Exception(StaticSemaEx, assign->row, "赋值符号两边类型不匹配！");
 					}
@@ -2181,14 +2309,14 @@ void MyParser::Parse()
 				{
 					if (val->numberAST->integer == nullptr)//real
 					{
-						if (type->son != 0 || ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::ReaL)
+						if (type->son != 0 || ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::REAL)
 						{
 							throw Exception(StaticSemaEx, assign->row, "赋值符号两边类型不匹配！");
 						}
 					}
 					else//int
 					{
-						if (type->son != 0 || ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::InT && ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::ReaL)
+						if (type->son != 0 || ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::INT && ((DirectTypeSpecifyAST*)type)->type->type != zx::Type::REAL)
 						{
 							throw Exception(StaticSemaEx, assign->row, "赋值符号两边类型不匹配！");
 						}
@@ -2205,7 +2333,7 @@ void MyParser::Parse()
 						PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)type;
 						DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 						PointerAST* pointer = pTypeSpecify->pointerAST;
-						if (pointer->starNum != 1 || dTypeSpecify->type->type != zx::Type::ChaR)
+						if (pointer->starNum != 1 || dTypeSpecify->type->type != zx::Type::CHAR)
 						{
 							throw Exception(StaticSemaEx, assign->row, "赋值符号两边类型不匹配！");
 						}
@@ -2259,17 +2387,17 @@ void MyParser::Parse()
 				else
 				{
 					DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)type;
-					if (dTypeSpecify->type->type == zx::Type::VoiD)
+					if (dTypeSpecify->type->type == zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, type->row, "不能定义void类型的变量");
 					}
-					if (dTypeSpecify->type->type == zx::Type::StrucT)//是结构体
+					if (dTypeSpecify->type->type == zx::Type::STRUCT)//是结构体
 					{
 						throw Exception(StaticSemaEx, assign->row, "结构体内无法嵌套定义结构体，如有需要，请定义该类型的指针!");
 					}
 					else
 					{
-						if (dTypeSpecify->type->type == zx::Type::InT)
+						if (dTypeSpecify->type->type == zx::Type::INT)
 						{
 							if (valList->vals->size() <= 0)//应该不会进入
 							{
@@ -2284,7 +2412,7 @@ void MyParser::Parse()
 								}
 							}
 						}
-						else if (dTypeSpecify->type->type == zx::Type::ReaL)
+						else if (dTypeSpecify->type->type == zx::Type::REAL)
 						{
 							if (valList->vals->size() <= 0)//应该不会进入
 							{
@@ -2303,7 +2431,7 @@ void MyParser::Parse()
 								}*/
 							}
 						}
-						else if (dTypeSpecify->type->type == zx::Type::ChaR)
+						else if (dTypeSpecify->type->type == zx::Type::CHAR)
 						{
 							if (valList->vals->size() <= 0)//应该不会进入
 							{
@@ -2318,7 +2446,7 @@ void MyParser::Parse()
 								}
 							}
 						}
-						else if (dTypeSpecify->type->type == zx::Type::StrinG)
+						else if (dTypeSpecify->type->type == zx::Type::STRING)
 						{
 							if (valList->vals->size() <= 0)//应该不会进入
 							{
@@ -2422,9 +2550,9 @@ void MyParser::Parse()
 					{
 						VarIndex index;
 						index.name = id->identifier;
-						index.funcName = i==0?"":funcId->identifier;
+						index.funcName = (i==0||funcId==nullptr)?"":funcId->identifier;
 						index.level = i;
-						index.formalParaList = i == 0?nullptr:funcFparaList;
+						index.formalParaList = (i == 0|| funcFparaList == nullptr)?nullptr:funcFparaList;
 						if (var_table->count(index) == 0)
 						{
 							continue;
@@ -2435,16 +2563,16 @@ void MyParser::Parse()
 							Variable* var = var_table->at(index);
 							varName->setType(var->getType());
 							varName->isArray = var->IsArray();
-							if (var->getType() == zx::Type::PointeR)
+							if (var->getType() == zx::Type::POINTER)
 							{
 								varName->setPointerNum(var->getPointerNum());
 								varName->setFinalToType(var->getFinalToType());
-								if (var->getFinalToType() == zx::Type::StrucT)
+								if (var->getFinalToType() == zx::Type::STRUCT)
 								{
 									varName->setStructName(var->getFinalStructName());
 								}
 							}
-							else if (var->getType() == zx::Type::StrucT)
+							else if (var->getType() == zx::Type::STRUCT)
 							{
 								varName->setStructName(var->getStructName());
 							}
@@ -2459,6 +2587,7 @@ void MyParser::Parse()
 #endif
 				//静态语义检查 end
 				varName->setRow(id->row);
+				varName->setLevel(curLevel);
 				tree = varName;
 				GoTo(tree, "<var_name>");
 			}
@@ -2477,7 +2606,7 @@ void MyParser::Parse()
 				if (rightName->type == 0)//右边的<var_name>为identifier
 				{
 					//左边的<var_name>已经检查过变量是否存在，故只需要检查右边的变量是否是左边的结构体的成员变量
-					if (leftName->varType != zx::Type::PointeR)
+					if (leftName->varType != zx::Type::POINTER)
 					{
 						throw Exception(StaticSemaEx, leftName->row, "不是指针的变量不能使用\"->\"符号");
 					}
@@ -2506,7 +2635,7 @@ void MyParser::Parse()
 									{
 										varName->identifier = rightName->identifier;
 									}*/
-									if (rightName->varType == zx::Type::StrucT)
+									if (rightName->varType == zx::Type::STRUCT)
 									{
 										rightName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 										varName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
@@ -2518,13 +2647,13 @@ void MyParser::Parse()
 									PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)(varDec->typeSpecifyAST);
 									DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 									PointerAST* pointer = pTypeSpecify->pointerAST;
-									rightName->setType(zx::Type::PointeR);
-									varName->setType(zx::Type::PointeR);
+									rightName->setType(zx::Type::POINTER);
+									varName->setType(zx::Type::POINTER);
 									rightName->setPointerNum(pointer->starNum);
 									varName->setPointerNum(pointer->starNum);
 									rightName->setFinalToType(dTypeSpecify->type->type);
 									varName->setFinalToType(dTypeSpecify->type->type);
-									if (rightName->finalToType == zx::Type::StrucT)
+									if (rightName->finalToType == zx::Type::STRUCT)
 									{
 										rightName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 										varName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
@@ -2547,6 +2676,7 @@ void MyParser::Parse()
 #endif
 				//静态语义检查 end
 				varName->setRow(op->row);
+				varName->setLevel(curLevel);
 				tree = varName;
 				delete op;
 				GoTo(tree, "<var_name>");
@@ -2574,7 +2704,7 @@ void MyParser::Parse()
 				//静态语义检查 start
 				//检查exp是否是指针类型，然后看pointerNum是1还是大于1？....
 #ifdef STATIC
-				if (exp->expType != zx::Type::PointeR)
+				if (exp->expType != zx::Type::POINTER)
 				{
 					throw Exception(StaticSemaEx, op->row, "只有指针变量才能使用\"*\"符号");
 				}
@@ -2582,10 +2712,10 @@ void MyParser::Parse()
 				{
 					if (exp->pointerNum > 1)
 					{
-						varName->setType(zx::Type::PointeR);
+						varName->setType(zx::Type::POINTER);
 						varName->setPointerNum(exp->pointerNum - 1);
 						varName->setFinalToType(exp->finalToType);
-						if (varName->finalToType == zx::Type::StrucT)
+						if (varName->finalToType == zx::Type::STRUCT)
 						{
 							varName->setStructName(exp->structName);
 						}
@@ -2593,7 +2723,7 @@ void MyParser::Parse()
 					else
 					{
 						varName->setType(exp->finalToType);
-						if (varName->varType == zx::Type::StrucT)
+						if (varName->varType == zx::Type::STRUCT)
 						{
 							varName->setStructName(exp->structName);
 						}
@@ -2602,6 +2732,7 @@ void MyParser::Parse()
 #endif // STATIC
 				//静态语义检查 end
 				varName->setRow(op->row);
+				varName->setLevel(curLevel);
 				tree = varName;
 				GoTo(tree, "<var_name>");
 			}
@@ -2620,7 +2751,7 @@ void MyParser::Parse()
 				if (rightName->type == 0)//右边的<var_name>为identifier
 				{
 					//左边的<var_name>已经检查过变量是否存在，故只需要检查右边的变量是否是左边的结构体的成员变量
-					if (leftName->varType != zx::Type::StrucT)
+					if (leftName->varType != zx::Type::STRUCT)
 					{
 						throw Exception(StaticSemaEx, leftName->row, "不是结构体的变量不能使用\".\"符号");
 					}
@@ -2640,7 +2771,7 @@ void MyParser::Parse()
 									DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)(varDec->typeSpecifyAST);
 									rightName->setType(dTypeSpecify->type->type);
 									varName->setType(dTypeSpecify->type->type);
-									if (rightName->varType == zx::Type::StrucT)
+									if (rightName->varType == zx::Type::STRUCT)
 									{
 										rightName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 										varName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
@@ -2652,13 +2783,13 @@ void MyParser::Parse()
 									PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)(varDec->typeSpecifyAST);
 									DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 									PointerAST* pointer = pTypeSpecify->pointerAST;
-									rightName->setType(zx::Type::PointeR);
-									varName->setType(zx::Type::PointeR);
+									rightName->setType(zx::Type::POINTER);
+									varName->setType(zx::Type::POINTER);
 									rightName->setPointerNum(pointer->starNum);
 									varName->setPointerNum(pointer->starNum);
 									rightName->setFinalToType(dTypeSpecify->type->type);
 									varName->setFinalToType(dTypeSpecify->type->type);
-									if (rightName->finalToType == zx::Type::StrucT)
+									if (rightName->finalToType == zx::Type::STRUCT)
 									{
 										rightName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 										varName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
@@ -2681,6 +2812,7 @@ void MyParser::Parse()
 #endif
 				//静态语义检查 end
 				varName->setRow(op->row);
+				varName->setLevel(curLevel);
 				tree = varName;
 				delete op;
 				GoTo(tree, "<var_name>");
@@ -2699,7 +2831,7 @@ void MyParser::Parse()
 				VarNameAST* varName = new VarNameAST(leftName, intExp);
 				//静态语义检查 start   检查数组越界？
 #ifdef STATIC
-				if (intExp->expType != zx::Type::InT)
+				if (intExp->expType != zx::Type::INT)
 				{
 					throw Exception(StaticSemaEx, lS->row, "\"[]\"内必须是整数表达式");
 				}
@@ -2711,8 +2843,8 @@ void MyParser::Parse()
 					bool find = false;
 					for (int i = curLevel; i >= 0; i--)
 					{
-						index.funcName = i == 0 ? "" : funcId->identifier;
-						index.formalParaList = i == 0 ? nullptr : funcFparaList;
+						index.funcName = (i == 0|| funcId == nullptr) ? "" : funcId->identifier;
+						index.formalParaList = (i == 0||funcFparaList==nullptr) ? nullptr : funcFparaList;
 						index.level = i;
 						if (var_table->count(index) == 0)
 						{
@@ -2731,16 +2863,16 @@ void MyParser::Parse()
 
 							}
 							varName->setType(var->getType());
-							if (varName->varType == zx::Type::PointeR)
+							if (varName->varType == zx::Type::POINTER)
 							{
 								varName->setPointerNum(var->getPointerNum());
 								varName->setFinalToType(var->getFinalToType());
-								if (varName->finalToType == zx::Type::StrucT)
+								if (varName->finalToType == zx::Type::STRUCT)
 								{
 									varName->setStructName(var->getFinalStructName());
 								}
 							}
-							else if (varName->varType == zx::Type::StrucT)
+							else if (varName->varType == zx::Type::STRUCT)
 							{
 								varName->setStructName(var->getStructName());
 							}
@@ -2780,7 +2912,7 @@ void MyParser::Parse()
 									{
 										DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)(singleVarDec->typeSpecifyAST);
 										varName->varType = dTypeSpecify->type->type;
-										if (varName->varType == zx::Type::StrucT)
+										if (varName->varType == zx::Type::STRUCT)
 										{
 											varName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 										}
@@ -2790,10 +2922,10 @@ void MyParser::Parse()
 										PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)(singleVarDec->typeSpecifyAST);
 										DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 										PointerAST* pointer = pTypeSpecify->pointerAST;
-										varName->varType = zx::Type::PointeR;
+										varName->varType = zx::Type::POINTER;
 										varName->setPointerNum(pointer->starNum);
 										varName->setFinalToType(dTypeSpecify->type->type);
-										if (varName->finalToType == zx::Type::StrucT)
+										if (varName->finalToType == zx::Type::STRUCT)
 										{
 											varName->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 										}
@@ -2820,6 +2952,7 @@ void MyParser::Parse()
 #endif
 				//静态语义检查 end
 				varName->setRow(leftName->row);
+				varName->setLevel(curLevel);
 				tree = varName;
 				delete lS;
 				delete rS;
@@ -2835,6 +2968,7 @@ void MyParser::Parse()
 				StmtAST* stmt = (StmtAST*)pop();
 				stmts->addStmtAST(stmt);
 				stmts->setRow(stmt->row);
+				stmts->setLevel(curLevel);
 				tree = stmts;
 				//delete semi;
 				GoTo(tree, "<stmts>");
@@ -2926,6 +3060,7 @@ void MyParser::Parse()
 				VarDecAST* varDec = (VarDecAST*)pop();
 				//set son = 7
 				varDec->son = 7;
+				varDec->setLevel(curLevel);
 				tree = varDec;
 				GoTo(tree, "<stmt>");
 			}
@@ -2947,11 +3082,12 @@ void MyParser::Parse()
 				OtherSymAST* ifSym = (OtherSymAST*)pop();
 				//create <if_stmt>
 				IfStmtAST* ifStmt = new IfStmtAST(exp, stmts);
+				ifStmt->setLevel(curLevel);
 				//静态语义分析 start
 #ifdef STATIC
-				if (exp->expType != zx::Type::InT)
+				if (exp->expType != zx::Type::INT)
 				{
-					throw Exception(StaticSemaEx, exp->row, "分支条件表达式应该是InT类型");
+					throw Exception(StaticSemaEx, exp->row, "分支条件表达式应该是INT类型");
 				}
 #endif // STATIC
 				//静态语义分析 end
@@ -2986,11 +3122,12 @@ void MyParser::Parse()
 				OtherSymAST* ifSym = (OtherSymAST*)pop();
 				//create <if_stmt>
 				IfStmtAST* ifElseStmt = new IfStmtAST(exp, thenStmts,elseStmts);
+				ifElseStmt->setLevel(curLevel);
 				//静态语义分析 start
 #ifdef STATIC
-				if (exp->expType != zx::Type::InT)
+				if (exp->expType != zx::Type::INT)
 				{
-					throw Exception(StaticSemaEx, exp->row, "分支条件表达式应该是InT类型");
+					throw Exception(StaticSemaEx, exp->row, "分支条件表达式应该是INT类型");
 				}
 #endif // STATIC
 				//静态语义分析 end
@@ -3017,11 +3154,12 @@ void MyParser::Parse()
 				OtherSymAST* whileSym = (OtherSymAST*)pop();
 				//create <while_stmt>
 				WhileStmtAST* whileStmt = new WhileStmtAST(exp, stmts);
+				whileStmt->setLevel(curLevel);
 				//静态语义分析 start
 #ifdef STATIC
-				if (exp->expType != zx::Type::InT)
+				if (exp->expType != zx::Type::INT)
 				{
-					throw Exception(StaticSemaEx, exp->row, "循环条件表达式应该是InT类型");
+					throw Exception(StaticSemaEx, exp->row, "循环条件表达式应该是INT类型");
 				}
 #endif // STATIC
 				//静态语义分析 end
@@ -3042,13 +3180,14 @@ void MyParser::Parse()
 				AssignStmtAST* assignStmt = new AssignStmtAST(varName, plusplus);
 				//静态语义检查 start
 #ifdef STATIC
-				if (varName->varType != zx::Type::InT && varName->varType != zx::Type::ReaL && varName->varType != zx::Type::PointeR)
+				if (varName->varType != zx::Type::INT && varName->varType != zx::Type::REAL && varName->varType != zx::Type::POINTER)
 				{
 					throw Exception(StaticSemaEx, plusplus->row, "只有整数，实数和指针类型的变量才能使用\"++\"运算符");
 				}
 #endif
 				//静态语义检查 end
 				assignStmt->setRow(semi->row);
+				assignStmt->setLevel(curLevel);
 				tree = assignStmt;
 				delete semi;
 				GoTo(tree, "<assign_stmt>");
@@ -3065,13 +3204,14 @@ void MyParser::Parse()
 				AssignStmtAST* assignStmt = new AssignStmtAST(varName, minusminus);
 				//静态语义检查 start
 #ifdef STATIC
-				if (varName->varType != zx::Type::InT && varName->varType != zx::Type::ReaL && varName->varType != zx::Type::PointeR)
+				if (varName->varType != zx::Type::INT && varName->varType != zx::Type::REAL && varName->varType != zx::Type::POINTER)
 				{
 					throw Exception(StaticSemaEx, minusminus->row, "只有整数，实数和指针类型的变量才能使用\"--\"运算符");
 				}
 #endif
 				//静态语义检查 end
 				assignStmt->setRow(semi->row);
+				assignStmt->setLevel(curLevel);
 				tree = assignStmt;
 				delete semi;
 				GoTo(tree, "<assign_stmt>");
@@ -3088,6 +3228,7 @@ void MyParser::Parse()
 				VarNameAST* varName = (VarNameAST*)pop();
 				//create <assign_stmt>
 				AssignStmtAST* assignStmt = new AssignStmtAST(varName, exp);
+				assignStmt->setLevel(curLevel);
 				//静态语义检查 start
 #ifdef STATIC
 				//是不是数组的问题?        <exp>不可能是数组
@@ -3097,11 +3238,11 @@ void MyParser::Parse()
 				}
 				if (varName->varType == exp->expType)
 				{
-					if (varName->varType == zx::Type::PointeR)
+					if (varName->varType == zx::Type::POINTER)
 					{
 						if (varName->pointerNum == exp->pointerNum && varName->finalToType==exp->finalToType)
 						{
-							if (varName->finalToType == zx::Type::StrucT)
+							if (varName->finalToType == zx::Type::STRUCT)
 							{
 								if (varName->structName != exp->structName)
 								{
@@ -3114,7 +3255,7 @@ void MyParser::Parse()
 							throw Exception(StaticSemaEx, assignSym->row, "赋值语句左右部类型不匹配");
 						}
 					}
-					else if (varName->varType == zx::Type::StrucT)
+					else if (varName->varType == zx::Type::STRUCT)
 					{
 						if (varName->structName != exp->structName)
 						{
@@ -3124,7 +3265,7 @@ void MyParser::Parse()
 				}
 				else
 				{
-					if (!(varName->varType == zx::Type::ReaL && exp->expType == zx::Type::InT))
+					if (!(varName->varType == zx::Type::REAL && exp->expType == zx::Type::INT))
 					{
 						throw Exception(StaticSemaEx, assignSym->row, "赋值语句左右部类型不匹配");
 					}
@@ -3144,11 +3285,12 @@ void MyParser::Parse()
 				OtherSymAST* returnSym = (OtherSymAST*)pop();
 				//create <return_stmt>
 				ReturnStmtAST* returnStmt = new ReturnStmtAST();
+				returnStmt->setLevel(curLevel);
 				//静态语义分析 start
 #ifdef STATIC
 				if (funcTypeAST != nullptr)
 				{
-					if (funcTypeAST->son == 1 || ((DirectTypeSpecifyAST*)funcTypeAST)->type->type != zx::Type::VoiD)
+					if (funcTypeAST->son == 1 || ((DirectTypeSpecifyAST*)funcTypeAST)->type->type != zx::Type::ZXVOID)
 					{
 						throw Exception(StaticSemaEx, semi->row, "返回值与函数定义的类型不匹配");
 					}
@@ -3174,6 +3316,7 @@ void MyParser::Parse()
 				OtherSymAST* returnSym = (OtherSymAST*)pop();
 				//create <return_stmt>
 				ReturnStmtAST* returnStmt = new ReturnStmtAST(exp);
+				returnStmt->setLevel(curLevel);
 #ifdef STATIC
 				if (funcTypeAST != nullptr)
 				{
@@ -3182,7 +3325,7 @@ void MyParser::Parse()
 						DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)funcTypeAST;
 						if (dTypeSpecify->type->type == exp->expType)
 						{
-							if (dTypeSpecify->type->type == zx::Type::StrucT)
+							if (dTypeSpecify->type->type == zx::Type::STRUCT)
 							{
 								if (dTypeSpecify->structNameIdentifier->identifier != exp->structName)
 								{
@@ -3192,7 +3335,7 @@ void MyParser::Parse()
 						}
 						else
 						{
-							if (!(dTypeSpecify->type->type == zx::Type::ReaL && exp->expType == zx::Type::InT))
+							if (!(dTypeSpecify->type->type == zx::Type::REAL && exp->expType == zx::Type::INT))
 							{
 								throw Exception(StaticSemaEx, semi->row, "返回值与函数定义的类型不匹配");
 							}
@@ -3203,13 +3346,13 @@ void MyParser::Parse()
 						PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)funcTypeAST;
 						DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 						PointerAST* pointer = pTypeSpecify->pointerAST;
-						if (!(exp->expType == zx::Type::PointeR && exp->pointerNum == pointer->starNum && exp->finalToType == dTypeSpecify->type->type))
+						if (!(exp->expType == zx::Type::POINTER && exp->pointerNum == pointer->starNum && exp->finalToType == dTypeSpecify->type->type))
 						{
 							throw Exception(StaticSemaEx, semi->row, "返回值与函数定义的类型不匹配");
 						}
 						else
 						{
-							if (exp->finalToType == zx::Type::StrucT)
+							if (exp->finalToType == zx::Type::STRUCT)
 							{
 								if (exp->structName != dTypeSpecify->structNameIdentifier->identifier)
 								{
@@ -3238,6 +3381,7 @@ void MyParser::Parse()
 				//create <break_stmt>
 				BreakStmtAST* breakStmt = new BreakStmtAST();
 				breakStmt->setRow(breakSym->row);
+				breakStmt->setLevel(curLevel);
 				tree = breakStmt;
 				delete semi; delete breakSym;
 				GoTo(tree, "<break_stmt>");
@@ -3251,6 +3395,7 @@ void MyParser::Parse()
 				//create <continue_stmt>
 				ContinueStmtAST* continueStmt = new ContinueStmtAST();
 				continueStmt->setRow(continueSym->row);
+				continueStmt->setLevel(curLevel);
 				tree = continueStmt;
 				delete semi; delete continueSym;
 				GoTo(tree, "<continue_stmt>");
@@ -3299,7 +3444,7 @@ void MyParser::Parse()
 #ifdef STATIC
 				if (rightExp->expType == leftExp->expType)//类型相同
 				{
-					if (leftExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL)//
+					if (leftExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL)//
 					{
 						exp->setType(leftExp->expType);
 					}
@@ -3310,13 +3455,13 @@ void MyParser::Parse()
 				}
 				else//类型不同
 				{
-					if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT)
+					if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT)
 					{//一个 int  一个  real
-						exp->setType(zx::Type::ReaL);
+						exp->setType(zx::Type::REAL);
 					}
-					else if (leftExp->expType == zx::Type::PointeR && rightExp->expType == zx::Type::InT)
+					else if (leftExp->expType == zx::Type::POINTER && rightExp->expType == zx::Type::INT)
 					{
-						exp->setType(zx::Type::PointeR);
+						exp->setType(zx::Type::POINTER);
 					}
 					else
 					{
@@ -3343,7 +3488,7 @@ void MyParser::Parse()
 #ifdef STATIC
 				if (rightExp->expType == leftExp->expType)//类型相同
 				{
-					if (leftExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL)//
+					if (leftExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL)//
 					{
 						exp->setType(leftExp->expType);
 					}
@@ -3354,13 +3499,13 @@ void MyParser::Parse()
 				}
 				else//类型不同
 				{
-					if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT)
+					if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT)
 					{//一个 int  一个  real
-						exp->setType(zx::Type::ReaL);
+						exp->setType(zx::Type::REAL);
 					}
-					else if (leftExp->expType == zx::Type::PointeR && rightExp->expType == zx::Type::InT)
+					else if (leftExp->expType == zx::Type::POINTER && rightExp->expType == zx::Type::INT)
 					{
-						exp->setType(zx::Type::PointeR);
+						exp->setType(zx::Type::POINTER);
 					}
 					else
 					{
@@ -3387,7 +3532,7 @@ void MyParser::Parse()
 #ifdef STATIC
 				if (rightExp->expType == leftExp->expType)//类型相同
 				{
-					if (leftExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL)//
+					if (leftExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL)//
 					{
 						exp->setType(leftExp->expType);
 					}
@@ -3398,9 +3543,9 @@ void MyParser::Parse()
 				}
 				else//类型不同
 				{
-					if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT)
+					if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT)
 					{//一个 int  一个  real
-						exp->setType(zx::Type::ReaL);
+						exp->setType(zx::Type::REAL);
 					}
 					else
 					{
@@ -3427,7 +3572,7 @@ void MyParser::Parse()
 #ifdef STATIC
 				if (rightExp->expType == leftExp->expType)//类型相同
 				{
-					if (leftExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL)//
+					if (leftExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL)//
 					{
 						exp->setType(leftExp->expType);
 					}
@@ -3438,9 +3583,9 @@ void MyParser::Parse()
 				}
 				else//类型不同
 				{
-					if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT)
+					if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT)
 					{//一个 int  一个  real
-						exp->setType(zx::Type::ReaL);
+						exp->setType(zx::Type::REAL);
 					}
 					else
 					{
@@ -3465,9 +3610,9 @@ void MyParser::Parse()
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 				//静态语义分析 start
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3490,14 +3635,14 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT||
-					leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT||leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::ReaL)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT||
+					leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT||leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::REAL)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
-				else if (leftExp->expType == zx::Type::ChaR && rightExp->expType == zx::Type::ChaR)
+				else if (leftExp->expType == zx::Type::CHAR && rightExp->expType == zx::Type::CHAR)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3519,14 +3664,14 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT ||
-					leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::ReaL)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT ||
+					leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::REAL)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
-				else if (leftExp->expType == zx::Type::ChaR && rightExp->expType == zx::Type::ChaR)
+				else if (leftExp->expType == zx::Type::CHAR && rightExp->expType == zx::Type::CHAR)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3548,14 +3693,14 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT ||
-					leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::ReaL)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT ||
+					leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::REAL)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
-				else if (leftExp->expType == zx::Type::ChaR && rightExp->expType == zx::Type::ChaR)
+				else if (leftExp->expType == zx::Type::CHAR && rightExp->expType == zx::Type::CHAR)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3577,14 +3722,14 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT ||
-					leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::ReaL)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT ||
+					leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::REAL)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
-				else if (leftExp->expType == zx::Type::ChaR && rightExp->expType == zx::Type::ChaR)
+				else if (leftExp->expType == zx::Type::CHAR && rightExp->expType == zx::Type::CHAR)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3606,14 +3751,14 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT ||
-					leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::ReaL)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT ||
+					leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::REAL)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
-				else if (leftExp->expType == zx::Type::ChaR && rightExp->expType == zx::Type::ChaR)
+				else if (leftExp->expType == zx::Type::CHAR && rightExp->expType == zx::Type::CHAR)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3635,14 +3780,14 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::ReaL || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::InT ||
-					leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT || leftExp->expType == zx::Type::ReaL && rightExp->expType == zx::Type::ReaL)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::REAL || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::INT ||
+					leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT || leftExp->expType == zx::Type::REAL && rightExp->expType == zx::Type::REAL)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
-				else if (leftExp->expType == zx::Type::ChaR && rightExp->expType == zx::Type::ChaR)
+				else if (leftExp->expType == zx::Type::CHAR && rightExp->expType == zx::Type::CHAR)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3664,9 +3809,9 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3688,9 +3833,9 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(leftExp, rightExp, op);
 #ifdef STATIC
-				if (leftExp->expType == zx::Type::InT && rightExp->expType == zx::Type::InT)
+				if (leftExp->expType == zx::Type::INT && rightExp->expType == zx::Type::INT)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3710,9 +3855,9 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(exp0, op);
 #ifdef STATIC
-				if (exp0->expType == zx::Type::InT)
+				if (exp0->expType == zx::Type::INT)
 				{
-					exp->setType(zx::Type::InT);
+					exp->setType(zx::Type::INT);
 				}
 				else
 				{
@@ -3732,11 +3877,11 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(exp0, op);
 #ifdef STATIC
-				if (exp0->expType == zx::Type::PointeR)
+				if (exp0->expType == zx::Type::POINTER)
 				{
 					if (exp0->pointerNum > 1)
 					{
-						exp->setType(zx::Type::PointeR);
+						exp->setType(zx::Type::POINTER);
 						exp->setPointerNum(exp0->pointerNum - 1);
 						exp->setFinalToType(exp0->finalToType);
 					}
@@ -3763,7 +3908,7 @@ void MyParser::Parse()
 				//create exp
 				ExpAST* exp = new ExpAST(exp0, op);
 #ifdef STATIC
-				if (exp0->expType == zx::Type::InT|| exp0->expType == zx::Type::ReaL)
+				if (exp0->expType == zx::Type::INT|| exp0->expType == zx::Type::REAL)
 				{
 					exp->setType(exp0->expType);
 				}
@@ -3803,7 +3948,7 @@ void MyParser::Parse()
 				{
 					DirectTypeSpecifyAST* dTypeSpecify = (DirectTypeSpecifyAST*)(retTypeSpecify);
 					exp->expType = dTypeSpecify->type->type;
-					if (dTypeSpecify->type->type == zx::Type::StrucT)
+					if (dTypeSpecify->type->type == zx::Type::STRUCT)
 					{
 						exp->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 					}
@@ -3813,10 +3958,10 @@ void MyParser::Parse()
 					PointerTypeSpecifyAST* pTypeSpecify = (PointerTypeSpecifyAST*)(retTypeSpecify);
 					DirectTypeSpecifyAST* dTypeSpecify = pTypeSpecify->directTypeSpecifyAST;
 					PointerAST* pointer = pTypeSpecify->pointerAST;
-					exp->expType = zx::Type::PointeR;
+					exp->expType = zx::Type::POINTER;
 					exp->setPointerNum(pointer->starNum);
 					exp->setFinalToType(dTypeSpecify->type->type);
-					if (dTypeSpecify->type->type == zx::Type::StrucT)
+					if (dTypeSpecify->type->type == zx::Type::STRUCT)
 					{
 						exp->setStructName(dTypeSpecify->structNameIdentifier->identifier);
 					}
@@ -3846,9 +3991,9 @@ void MyParser::Parse()
 					for (int i = curLevel; i >= 0; i--)
 					{
 						VarIndex index;
-						index.formalParaList = i==0?nullptr:funcFparaList;
+						index.formalParaList = (i==0||funcFparaList==nullptr)?nullptr:funcFparaList;
 						index.level = i;
-						index.funcName = i == 0 ? "" : funcId->identifier;
+						index.funcName = (i == 0|| funcId == nullptr) ? "" : funcId->identifier;
 						index.name = varName->identifier->identifier;
 						if (var_table->count(index) == 0)
 						{
@@ -3858,16 +4003,16 @@ void MyParser::Parse()
 						{
 							Variable* var = var_table->at(index);
 							exp->expType = var->getType();
-							if (exp->expType == zx::Type::PointeR)
+							if (exp->expType == zx::Type::POINTER)
 							{
 								exp->setPointerNum(var->getPointerNum());
 								exp->setFinalToType(var->getFinalToType());
-								if (exp->finalToType == zx::Type::StrucT)
+								if (exp->finalToType == zx::Type::STRUCT)
 								{
 									exp->setStructName(var->getFinalStructName());
 								}
 							}
-							else if(exp->expType == zx::Type::StrucT)
+							else if(exp->expType == zx::Type::STRUCT)
 							{
 								exp->setStructName(var->getStructName());
 							}
@@ -3885,16 +4030,16 @@ void MyParser::Parse()
 				{
 					VarNameAST* leftVarName = varName->left;
 					exp->expType = leftVarName->varType;
-					if (exp->expType == zx::Type::PointeR)
+					if (exp->expType == zx::Type::POINTER)
 					{
 						exp->setPointerNum(leftVarName->pointerNum);
 						exp->setFinalToType(leftVarName->finalToType);
-						if (exp->finalToType == zx::Type::StrucT)
+						if (exp->finalToType == zx::Type::STRUCT)
 						{
 							exp->setStructName(leftVarName->structName);
 						}
 					}
-					else if (exp->expType == zx::Type::StrucT)
+					else if (exp->expType == zx::Type::STRUCT)
 					{
 						exp->setStructName(leftVarName->structName);
 					}
@@ -3902,16 +4047,16 @@ void MyParser::Parse()
 				else if (varName->type == 2 || varName->type == 3)//->   .
 				{
 					exp->expType = varName->varType;
-					if (exp->expType == zx::Type::PointeR)
+					if (exp->expType == zx::Type::POINTER)
 					{
 						exp->setPointerNum(varName->pointerNum);
 						exp->setFinalToType(varName->finalToType);
-						if (exp->finalToType == zx::Type::StrucT)
+						if (exp->finalToType == zx::Type::STRUCT)
 						{
 							exp->setStructName(varName->structName);
 						}
 					}
-					else if (exp->expType == zx::Type::StrucT)
+					else if (exp->expType == zx::Type::STRUCT)
 					{
 						exp->setStructName(varName->structName);
 					}
@@ -3919,18 +4064,18 @@ void MyParser::Parse()
 				else if (varName->type == 4)
 				{
 					exp->expType = varName->varType;
-					if (exp->expType == zx::Type::PointeR)
+					if (exp->expType == zx::Type::POINTER)
 					{
 						exp->setPointerNum(varName->pointerNum);
 						exp->finalToType = varName->finalToType;
-						if (exp->finalToType == zx::Type::StrucT)
+						if (exp->finalToType == zx::Type::STRUCT)
 						{
 							exp->setStructName(varName->structName);
 						}
 					}
 					else
 					{
-						if (exp->expType == zx::Type::StrucT)
+						if (exp->expType == zx::Type::STRUCT)
 						{
 							exp->setStructName(varName->structName);
 						}
@@ -3950,22 +4095,22 @@ void MyParser::Parse()
 #ifdef STATIC
 				if (val->charAST != nullptr)
 				{
-					exp->setType(zx::Type::ChaR);
+					exp->setType(zx::Type::CHAR);
 				}
 				else if (val->numberAST != nullptr)
 				{
 					if (val->numberAST->type == 0)//int
 					{
-						exp->setType(zx::Type::InT);
+						exp->setType(zx::Type::INT);
 					}
 					else//real
 					{
-						exp->setType(zx::Type::ReaL);
+						exp->setType(zx::Type::REAL);
 					}
 				}
 				else if (val->stringAST != nullptr)
 				{
-					exp->setType(zx::Type::StrinG);
+					exp->setType(zx::Type::STRING);
 				}
 				else
 				{
@@ -3991,99 +4136,54 @@ void MyParser::Parse()
 				//静态语义检查 start
 #ifdef STATIC
 				string funcName = id->identifier;
-				if (definedFuncs->count(funcName) == 1)
-				{
-					bool find = false;
-					for (int i = 0; i < (*definedFuncs)[funcName].size(); i++)
-					{
-						if (find)
-						{
-							break;
+				if (funcName == "write" || funcName == "read") {
+					if (rparaList != nullptr && rparaList->realParaItemASTs != nullptr && rparaList->realParaItemASTs->size() == 1){
+						if (funcName == "read") {
+							RealParaItemAST* item = rparaList->realParaItemASTs->at(0);
+							ExpAST* exp = item->expAST;
+							if (exp->type != 3) {
+								throw Exception(StaticSemaEx, id->row, "read函数的参数必须是一个变量");
+							}
 						}
-						FuncDefineAST* func = (*definedFuncs)[funcName][i];
-						if (rparaList->realParaItemASTs->size() == func->formalParaListAST->formalParaItemASTs->size())
+					}
+					else {
+						throw Exception(StaticSemaEx, id->row, "read和write函数必须有且只有一个参数");
+					}
+				}
+				else {
+					if (definedFuncs->count(funcName) == 1)
+					{
+						bool find = false;
+						for (int i = 0; i < (*definedFuncs)[funcName].size(); i++)
 						{
-							if (rparaList->realParaItemASTs->size() == 0)
+							if (find)
 							{
-								find = true;
-								funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
 								break;
 							}
-							for (int j = 0; j < rparaList->realParaItemASTs->size(); j++)
+							FuncDefineAST* func = (*definedFuncs)[funcName][i];
+							if (rparaList->realParaItemASTs->size() == func->formalParaListAST->formalParaItemASTs->size())
 							{
-								FormalParaItemAST* fParaItem = func->formalParaListAST->formalParaItemASTs->at(j);
-								RealParaItemAST* rParaItem = rparaList->realParaItemASTs->at(j);
-								ExpAST* exp = rParaItem->expAST;
-								if (fParaItem->typeSpecifyAST->son == 0)
+								if (rparaList->realParaItemASTs->size() == 0)
 								{
-									if (exp->expType != zx::Type::PointeR)
-									{
-										DirectTypeSpecifyAST* dtypeSpecify = (DirectTypeSpecifyAST*)(fParaItem->typeSpecifyAST);
-										if (exp->expType == dtypeSpecify->type->type)
-										{
-											if (exp->expType == zx::Type::StrucT)
-											{
-												if (exp->structName == dtypeSpecify->structNameIdentifier->identifier)
-												{
-													if (j == rparaList->realParaItemASTs->size() - 1)
-													{
-														find = true;
-														funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
-														break;
-													}
-													continue;
-												}
-												else
-												{
-													break;
-												}
-											}
-											else
-											{
-												if (j == rparaList->realParaItemASTs->size() - 1)
-												{
-													find = true;
-													funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
-													break;
-												}
-												continue;
-											}
-										}
-										else
-										{
-											if (dtypeSpecify->type->type == zx::Type::ReaL && exp->expType == zx::Type::InT)
-											{
-												if (j == rparaList->realParaItemASTs->size() - 1)
-												{
-													find = true;
-													funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
-													break;
-												}
-												continue;
-											}
-											else 
-											{
-												break;
-											}
-										}
-									}
-									else
-									{
-										break;
-									}
+									find = true;
+									funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
+									break;
 								}
-								else//指针类型
+								for (int j = 0; j < rparaList->realParaItemASTs->size(); j++)
 								{
-									PointerTypeSpecifyAST* pointerTypeSpecify = (PointerTypeSpecifyAST*)(fParaItem->typeSpecifyAST);
-									if (exp->expType == zx::Type::PointeR)
+									FormalParaItemAST* fParaItem = func->formalParaListAST->formalParaItemASTs->at(j);
+									RealParaItemAST* rParaItem = rparaList->realParaItemASTs->at(j);
+									ExpAST* exp = rParaItem->expAST;
+									if (fParaItem->typeSpecifyAST->son == 0)
 									{
-										if (exp->pointerNum == pointerTypeSpecify->pointerAST->starNum)
+										if (exp->expType != zx::Type::POINTER)
 										{
-											if (exp->finalToType == pointerTypeSpecify->directTypeSpecifyAST->type->type)
+											DirectTypeSpecifyAST* dtypeSpecify = (DirectTypeSpecifyAST*)(fParaItem->typeSpecifyAST);
+											if (exp->expType == dtypeSpecify->type->type)
 											{
-												if (exp->expType == zx::Type::StrucT)
+												if (exp->expType == zx::Type::STRUCT)
 												{
-													if (exp->structName == pointerTypeSpecify->directTypeSpecifyAST->structNameIdentifier->identifier)
+													if (exp->structName == dtypeSpecify->structNameIdentifier->identifier)
 													{
 														if (j == rparaList->realParaItemASTs->size() - 1)
 														{
@@ -4111,12 +4211,20 @@ void MyParser::Parse()
 											}
 											else
 											{
-												if (j == rparaList->realParaItemASTs->size() - 1)
+												if (dtypeSpecify->type->type == zx::Type::REAL && exp->expType == zx::Type::INT)
 												{
-													find = true;
+													if (j == rparaList->realParaItemASTs->size() - 1)
+													{
+														find = true;
+														funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
+														break;
+													}
+													continue;
+												}
+												else
+												{
 													break;
 												}
-												continue;
 											}
 										}
 										else
@@ -4124,27 +4232,219 @@ void MyParser::Parse()
 											break;
 										}
 									}
-									else
+									else//指针类型
 									{
-										break;
+										PointerTypeSpecifyAST* pointerTypeSpecify = (PointerTypeSpecifyAST*)(fParaItem->typeSpecifyAST);
+										if (exp->expType == zx::Type::POINTER)
+										{
+											if (exp->pointerNum == pointerTypeSpecify->pointerAST->starNum)
+											{
+												if (exp->finalToType == pointerTypeSpecify->directTypeSpecifyAST->type->type)
+												{
+													if (exp->expType == zx::Type::STRUCT)
+													{
+														if (exp->structName == pointerTypeSpecify->directTypeSpecifyAST->structNameIdentifier->identifier)
+														{
+															if (j == rparaList->realParaItemASTs->size() - 1)
+															{
+																find = true;
+																funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
+																break;
+															}
+															continue;
+														}
+														else
+														{
+															break;
+														}
+													}
+													else
+													{
+														if (j == rparaList->realParaItemASTs->size() - 1)
+														{
+															find = true;
+															funcCallStmt->retTypeSpecify = func->typeSpecifyAST;
+															break;
+														}
+														continue;
+													}
+												}
+												else
+												{
+													if (j == rparaList->realParaItemASTs->size() - 1)
+													{
+														find = true;
+														break;
+													}
+													continue;
+												}
+											}
+											else
+											{
+												break;
+											}
+										}
+										else
+										{
+											break;
+										}
 									}
+
 								}
-								
+							}
+							else
+							{
+								continue;
 							}
 						}
-						else
+						if (!find)
 						{
-							continue;
+							throw Exception(StaticSemaEx, lP->row, "函数参数列表类型不匹配");
 						}
 					}
-					if (!find)
-					{
-						throw Exception(StaticSemaEx, lP->row, "函数参数列表类型不匹配");
+					else if(funcName == funcId->identifier){
+						if (rparaList->realParaItemASTs != nullptr ) {
+							if (funcFparaList->formalParaItemASTs != nullptr) {
+								bool find = false;
+								for (int j = 0; j < rparaList->realParaItemASTs->size(); j++)
+								{
+									FormalParaItemAST* fParaItem = funcFparaList->formalParaItemASTs->at(j);
+									RealParaItemAST* rParaItem = rparaList->realParaItemASTs->at(j);
+									ExpAST* exp = rParaItem->expAST;
+									if (fParaItem->typeSpecifyAST->son == 0)
+									{
+										if (exp->expType != zx::Type::POINTER)
+										{
+											DirectTypeSpecifyAST* dtypeSpecify = (DirectTypeSpecifyAST*)(fParaItem->typeSpecifyAST);
+											if (exp->expType == dtypeSpecify->type->type)
+											{
+												if (exp->expType == zx::Type::STRUCT)
+												{
+													if (exp->structName == dtypeSpecify->structNameIdentifier->identifier)
+													{
+														if (j == rparaList->realParaItemASTs->size() - 1)
+														{
+															find = true;
+															funcCallStmt->retTypeSpecify = funcTypeAST;
+															break;
+														}
+														continue;
+													}
+													else
+													{
+														break;
+													}
+												}
+												else
+												{
+													if (j == rparaList->realParaItemASTs->size() - 1)
+													{
+														find = true;
+														funcCallStmt->retTypeSpecify = funcTypeAST;
+														break;
+													}
+													continue;
+												}
+											}
+											else
+											{
+												if (dtypeSpecify->type->type == zx::Type::REAL && exp->expType == zx::Type::INT)
+												{
+													if (j == rparaList->realParaItemASTs->size() - 1)
+													{
+														find = true;
+														funcCallStmt->retTypeSpecify = funcTypeAST;
+														break;
+													}
+													continue;
+												}
+												else
+												{
+													break;
+												}
+											}
+										}
+										else
+										{
+											break;
+										}
+									}
+									else//指针类型
+									{
+										PointerTypeSpecifyAST* pointerTypeSpecify = (PointerTypeSpecifyAST*)(fParaItem->typeSpecifyAST);
+										if (exp->expType == zx::Type::POINTER)
+										{
+											if (exp->pointerNum == pointerTypeSpecify->pointerAST->starNum)
+											{
+												if (exp->finalToType == pointerTypeSpecify->directTypeSpecifyAST->type->type)
+												{
+													if (exp->expType == zx::Type::STRUCT)
+													{
+														if (exp->structName == pointerTypeSpecify->directTypeSpecifyAST->structNameIdentifier->identifier)
+														{
+															if (j == rparaList->realParaItemASTs->size() - 1)
+															{
+																find = true;
+																funcCallStmt->retTypeSpecify = funcTypeAST;
+																break;
+															}
+															continue;
+														}
+														else
+														{
+															break;
+														}
+													}
+													else
+													{
+														if (j == rparaList->realParaItemASTs->size() - 1)
+														{
+															find = true;
+															funcCallStmt->retTypeSpecify = funcTypeAST;
+															break;
+														}
+														continue;
+													}
+												}
+												else
+												{
+													if (j == rparaList->realParaItemASTs->size() - 1)
+													{
+														break;
+													}
+													continue;
+												}
+											}
+											else
+											{
+												break;
+											}
+										}
+										else
+										{
+											break;
+										}
+									}
+
+								}
+								if (!find) {
+									throw Exception(StaticSemaEx, id->row, "函数参数列表类型不匹配");
+								}
+							}
+							else {
+								throw Exception(StaticSemaEx, id->row, "函数参数列表类型不匹配");
+							}
+						}
+						else {
+							if (funcFparaList->formalParaItemASTs != nullptr && funcFparaList->formalParaItemASTs->size() != 0) {
+								throw Exception(StaticSemaEx, id->row, "函数参数列表类型不匹配");
+							}
+						}
 					}
-				}
-				else
-				{
-					throw Exception(StaticSemaEx, lP->row, "函数未定义");
+					else
+					{
+						throw Exception(StaticSemaEx, lP->row, "函数未定义");
+					}
 				}
 #endif
 				//静态语义检查 end
@@ -4224,7 +4524,10 @@ void MyParser::Parse()
 #else
 	std::cout << "语法分析成功!" << endl;
 #endif
+	//tree->codegen();
+	this->root = tree;
 }
+
 void MyParser::GoTo(AST*& ast, string value)
 {
 	Symbol* symbol = new Symbol();

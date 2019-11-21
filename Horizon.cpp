@@ -15,6 +15,7 @@ Horizon::Horizon(QMainWindow* parent)
 	, consoleView(new QTextEdit(outputTab))
 	, IEView(new QTextEdit(outputTab))
 	, curDateTimeWidget(new QLabel())
+	, vars(new QList<Var*>())
 	, timer(new QTimer(this))
 	, parser(NULL) {
 
@@ -28,11 +29,13 @@ Horizon::Horizon(QMainWindow* parent)
 	outputTab->addTab(consoleView, QString::fromLocal8Bit( "静态语义分析结果"));
 	outputTab->addTab(IEView,QString::fromLocal8Bit("解释执行结果"));
 	consoleView->setReadOnly(true);
+	consoleView->setWordWrapMode(QTextOption::NoWrap);
 	IEView->setReadOnly(true);
+	IEView->setWordWrapMode(QTextOption::NoWrap);
 	verticalSplitter->setStretchFactor(0, 1);//<commit0>请查看res\tools\commit.txt
 	horizontalSplitter->setStretchFactor(1, 1);
 	this->setCentralWidget(horizontalSplitter);
-	this->setMinimumSize(1200, 540);
+	this->setMinimumSize(900, 540);
 	curDateTimeWidget->setAlignment(Qt::AlignRight);
 	horizonUi.statusBar->addPermanentWidget(curDateTimeWidget);
 	horizonUi.statusBar->showMessage(QString::fromLocal8Bit("Horizon 感谢您的使用"), 6000);
@@ -44,13 +47,18 @@ Horizon::Horizon(QMainWindow* parent)
 	connect(horizonUi.actionSave_All, SIGNAL(triggered()), this, SLOT(fSave_All()));
 	connect(horizonUi.actionClose, SIGNAL(triggered()), this, SLOT(fClose()));
 	connect(horizonUi.actionRun, SIGNAL(triggered()), this, SLOT(fSafeRun()));
+	connect(horizonUi.actionCancelDebug, SIGNAL(triggered()), this, SLOT(fCancelDebug()));
 	connect(horizonUi.actionUndo, SIGNAL(triggered()), this, SLOT(fUndo()));
 	connect(horizonUi.actionRedo, SIGNAL(triggered()), this, SLOT(fRedo()));
 	connect(horizonUi.actionCut, SIGNAL(triggered()), this, SLOT(fCut()));
 	connect(horizonUi.actionCopy, SIGNAL(triggered()), this, SLOT(fCopy()));
 	connect(horizonUi.actionPaste, SIGNAL(triggered()), this, SLOT(fPaste()));
 	connect(horizonUi.actionSelect_All, SIGNAL(triggered()), this, SLOT(fSelectAll()));
-	connect(horizonUi.actionTest, SIGNAL(triggered()), this, SLOT(fTest()));
+	connect(horizonUi.actionBreak, SIGNAL(triggered()), this, SLOT(fBreak()));
+	connect(horizonUi.actionCancelBreak, SIGNAL(triggered()), this, SLOT(fCancelBreak()));
+	connect(horizonUi.actionLineDebug, SIGNAL(triggered()), this, SLOT(fLineDebug()));
+	connect(horizonUi.actionPointDebug, SIGNAL(triggered()), this, SLOT(fPointDebug()));
+	connect(horizonUi.actionAbout, SIGNAL(triggered()), this, SLOT(fAbout()));
 	connect(listWidget, SIGNAL(currentRowChanged(int)), this, SLOT(tab_Synto_List(int)));
 	connect(timer, SIGNAL(timeout()), this, SLOT(showCurDateTime()));
 	connect(timer, SIGNAL(timeout()), this, SLOT(fStaticSemanticAnalysis()));
@@ -64,7 +72,7 @@ Horizon::~Horizon() {
 	delete listWidget;
 	delete verticalSplitter;
 	delete horizontalSplitter;
-	while (editors->count() > 0) editors->removeLast();
+	editors->clear();
 	//delete editors;
 }
 
@@ -76,218 +84,6 @@ void Horizon::showCurDateTime() {
 /*tab不空且有内容*/
 bool Horizon::tabNotEmpty() {
 	return (inputTab->count() > 0);
-}
-
-/*外部exe调用测试*/
-void Horizon::fTest() {//<commit6>
-	QProcess* process = new QProcess(); 
-	QTextStream qin(stdin, QIODevice::ReadOnly);
-	QTextStream qout(stdout, QIODevice::WriteOnly);
-
-	process->setProcessChannelMode(QProcess::MergedChannels);
-	process->start("E:\\VS-projects\\Test1\\x64\\Debug\\test1.exe");
-	if (process->waitForStarted(200)) 
-		horizonUi.statusBar->showMessage("started", 3000);
-	//qDebug() << process->bytesToWrite();
-	//process->write("1.36f");
-	//process->write("3.947f");
-	//process->write("5566f");
-	////process->write()
-	//qDebug() << process->bytesToWrite();
-	if (process->waitForReadyRead(200)) 
-		horizonUi.statusBar->showMessage("ready read", 3000);
-	QString standardOutput = NULL;
-	while (!process->atEnd()) {
-		standardOutput += QString::fromLocal8Bit(process->readLine().trimmed()) + " ";//后面加空格不能删
-		if (standardOutput.endsWith(">")) {
-			readinDialog* dialog = new readinDialog();
-			dialog->exec();
-			if (dialog->inVarChecked()) {
-				IEView->append(dialog->inVar);
-				//process->write(dialog->inVar.toStdString().c_str()+'f');
-				//process->write("0.002\n");
-				//process->waitForBytesWritten(1000);
-			}
-		}
-	}
-	if (process)
-		process->close();
-	qDebug() << standardOutput;
-	QList<Var*>* vars = ReadVal(standardOutput);
-	QList<int>* p = new QList<int>();
-	p->append(15);
-	p->append(17);
-	//qDebug() << FindFirstPoint(vars, p);
-	qDebug() << Step(vars);
-	qDebug() << Step(vars);
-	//IEView->append(standardOutput);
-	
-
-}
-/*变量结构体*/
-struct Horizon::Var
-{
-	QString Line = NULL;
-	QString Type = NULL;
-	QString Name = NULL;
-	QString Val = NULL;
-	QString Msg = NULL;
-};
-/*读取后台数据并规范化载入内存*/
-QList<Horizon::Var*>* Horizon::ReadVal(QString out)
-{
-	QString temp = NULL;
-	QString line = NULL;
-	QChar tcr = NULL;
-	QList<Var*>* vars = new QList<Var*>();
-	Var* tempVar;
-	int n = 0;
-	QString::const_iterator cit = NULL;//QChar指针，用来遍历QString
-	for (cit = out.cbegin(); cit < out.cend(); cit++) {
-		tcr = *cit;
-		if (tcr == '@')
-			n = 0;			
-		else if(tcr == ' ' || cit == out.cend()){
-			switch (n)
-			{
-			case 0:
-				if (temp != 'W') {
-					line = temp;
-					temp.clear();
-					n = 1;
-				}
-				else {
-					temp.clear();
-					n = 5;
-				}
-				break;
-			case 1:
-				tempVar = new Var();
-				tempVar->Line = line;
-				switch (temp.toInt())
-				{
-				case 0:tempVar->Type = "int"; break;
-				case 1:tempVar->Type = "real"; break;
-				case 2:tempVar->Type = "int[]"; break;
-				case 3:tempVar->Type = "real[]"; break;
-				default:
-					break;
-				}
-				temp.clear();
-				n = 2;
-				break;
-			case 2:
-				tempVar->Name = temp;
-				temp.clear();
-				n = 3;
-				break;
-			case 3:
-				tempVar->Val = temp;
-				vars->append(tempVar);
-				temp.clear();
-				n = 1;
-				break;
-			case 4:
-				tempVar = new Var();
-				tempVar->Line = line;
-				tempVar->Msg = temp;
-				vars->append(tempVar);
-				temp.clear();
-				n = 1;
-				break;
-			case 5:
-				tempVar = new Var();
-				tempVar->Line = line;
-				tempVar->Val = temp;
-				tempVar->Msg = "WRITE";
-				vars->append(tempVar);
-				temp.clear();
-				n = 1;
-				break;
-			default:
-				break;
-			}
-		}
-		else {
-			temp += tcr;
-			if (temp.contains("ERROR:")) {
-				n = 4;
-			}
-		}
-	}
-	return vars;
-}
-/*找到接下来最近的一个断点行，成功输出断点行号，否则输出-1*/
-int Horizon::FindFirstPoint(QList<Var*>* vars, QList<int>* points)
-{
-	Var* temp = vars->at(0);
-	int line = 0;
-	while (!points->contains(temp->Line.toInt())) {
-		if (temp->Msg == "WRITE") {
-			consoleView->append(temp->Val);
-			outputTab->setCurrentIndex(0);
-		}
-		if (temp->Msg != NULL && temp->Msg != "WRITE") {
-			consoleView->append(temp->Msg + "!	" + QString::fromLocal8Bit("行号:") + temp->Line);
-			return -1;
-		}
-		vars->removeFirst(); 
-		if (!vars->empty())
-			temp = vars->at(0);
-		else
-			break;
-	}
-	line = temp->Line.toInt();
-	if (temp) {
-		IEView->clear();
-		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
-		while (line == temp->Line.toInt()) {
-			IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") + 
-				temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
-			outputTab->setCurrentIndex(1);
-			vars->removeFirst();
-			if (!vars->empty())
-				temp = vars->at(0);
-			else
-				break;
-		}
-	}
-	else
-		return -1;
-	return line;
-}
-/*单步向后寻行*/
-int Horizon::Step(QList<Var*>* vars)
-{
-	Var* temp = vars->at(0);
-	if (temp->Msg != NULL && temp->Msg != "WRITE") {
-		consoleView->append(temp->Msg + "!	" +QString::fromLocal8Bit("行号:") + temp->Line);
-		return -1;
-	}
-	int line = temp->Line.toInt(); 
-	if (temp) {
-		IEView->clear();
-		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
-		while (line == temp->Line.toInt()) {			
-			if (temp->Msg == "WRITE") {
-				consoleView->append(temp->Val);
-				outputTab->setCurrentIndex(0);
-			}
-			else {
-				IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") +
-					temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
-				outputTab->setCurrentIndex(1);
-			}
-			vars->removeFirst();
-			if (!vars->empty())
-				temp = vars->at(0);
-			else
-				break;
-		}
-	}
-	else
-		return -1;
-	return line;
 }
 
 /*菜单按钮退出*/
@@ -310,12 +106,15 @@ int Horizon::fQuit() {
 void Horizon::closeEvent(QCloseEvent* event) {//<commit3>请查看res\tools\commit.txt
 	if (QMessageBox::Cancel == fQuit())event->ignore();
 }
-/*
-调试
-*/
+/*使用说明*/
+void Horizon::fAbout() {
+	QMessageBox::information(this, QString::fromLocal8Bit("使用说明"), QString::fromLocal8Bit("Horizon为您服务：\n打开文件按下F1在当前行添加断点\n按F2取消当前行断点"));
+}
+/*调试*/
 void Horizon::fSafeRun() {
 	if (fSave() > 0) {
 		int index = inputTab->currentIndex();
+		SmartEdit* curEdit = editors->at(index);
 		try {
 			parser = new MyParser(file_paths.at(index).toStdString().c_str()
 				, SLR1Txt, MyProductions, "empty", true);
@@ -326,16 +125,28 @@ void Horizon::fSafeRun() {
 		} 
 		catch (Exception e) {
 			//跳转至错误行,报错行号本身与实际行号对应，而block号则是从0开始，因此e.row=blockNumber+1
-			SmartEdit* curInput = editors->at(index);
-			curInput->setTextCursor(QTextCursor(curInput->document()->findBlockByNumber(e.row-1)));
+			curEdit->setTextCursor(QTextCursor(curEdit->document()->findBlockByNumber(e.row-1)));
 			consoleView->append(QTime::currentTime().toString()
 				+ " <" + file_names.at(index) + "> "
 				+ QString::fromLocal8Bit(e.print().c_str()));
 		}
-		horizonUi.statusBar->showMessage(QString::fromLocal8Bit("编译完成"), 3000);
+		QString standardOutput = fTest();
+		vars = ReadVal(standardOutput);
+		FindFirstPoint(vars, QList<int>());
+		horizonUi.statusBar->showMessage(QString::fromLocal8Bit("运行完成"), 3000);
 	}
 }
-
+/*取消调试*/
+void Horizon::fCancelDebug() {
+	int index = inputTab->currentIndex();
+	SmartEdit* curEdit = editors->at(index);
+	curEdit->setEnabled(true);
+	IEView->clear();
+	outputTab->setCurrentIndex(0);
+	vars->clear();
+	horizonUi.actionCancelDebug->setEnabled(false);
+	horizonUi.actionRun->setEnabled(true);
+}
 
 /*inputView、Tab和list、editors同步*/
 //如果涉及connect函数中没有处理好越界问题，则会引发程序崩溃
@@ -348,18 +159,22 @@ void Horizon::tab_Synto_List(int index) {
 /*静态语义分析*/
 void Horizon::fStaticSemanticAnalysis() {
 	if (tabNotEmpty()) {
-		SmartEdit* curInput = editors->at(inputTab->currentIndex());
+		SmartEdit* curEdit = editors->at(inputTab->currentIndex());
 		//多于150行不主动执行静态语义分析
-		if (curInput->document()->lineCount() <= 150) {
-			QString curText = curInput->toPlainText() + '\0';
+		if (curEdit->document()->lineCount() <= 150) {
+			QString curText = curEdit->toPlainText() + '\0';
 			try {
 				parser = new MyParser(curText.toStdString().c_str()
 					, SLR1Txt, MyProductions, "empty", false);
 				parser->Parse();
-				curInput->exceptionRow = -1;
+				curEdit->exceptionRow = -1;
+				horizonUi.actionBreak->setEnabled(true);
+				horizonUi.actionCancelBreak->setEnabled(true);
 			}
 			catch (Exception e) {
-				curInput->exceptionRow = e.row;
+				curEdit->exceptionRow = e.row;
+				horizonUi.actionBreak->setEnabled(false);
+				horizonUi.actionCancelBreak->setEnabled(false);
 			}
 		}
 	}
@@ -382,19 +197,33 @@ void Horizon::fNew()
 		QTextStream in(&file);
 		in.setCodec(QTextCodec::codecForName("utf-8"));
 		QString line = in.readAll();
-		SmartEdit*curInput = new SmartEdit();
-		curInput->appendPlainText(line);
+		SmartEdit*curEdit = new SmartEdit();
+		curEdit->appendPlainText(line);
 		file.close();
-		editors->append(curInput);
+		editors->append(curEdit);
 
 		QListWidgetItem* item = new QListWidgetItem();
 		item->setText(fi.fileName());
 		listWidget->addItem(item);
-		inputTab->addTab(curInput, fi.fileName());
+		inputTab->addTab(curEdit, fi.fileName());
 		//<commit4>请查看res\tools\commit.txt
 		listWidget->setCurrentItem(item);
 		inputTab->setCurrentIndex(listWidget->currentRow());
-		curInput->setFocus();
+		curEdit->setFocus();
+
+		horizonUi.actionSave->setEnabled(true);
+		horizonUi.actionSave_All->setEnabled(true);
+		horizonUi.actionClose->setEnabled(true);
+		horizonUi.actionUndo->setEnabled(true);
+		horizonUi.actionRedo->setEnabled(true);
+		horizonUi.actionCut->setEnabled(true);
+		horizonUi.actionCopy->setEnabled(true);
+		horizonUi.actionPaste->setEnabled(true);
+		horizonUi.actionSelect_All->setEnabled(true);
+		horizonUi.actionRun->setEnabled(true);
+		horizonUi.actionBreak->setEnabled(true);
+		horizonUi.actionCancelBreak->setEnabled(true);
+
 		horizonUi.statusBar->showMessage(fi.fileName() + QString::fromLocal8Bit("新建至") + filePath, 3000);
 	}
 }
@@ -416,20 +245,33 @@ void Horizon::fOpen()
 		QTextStream in(&file); 
 		in.setCodec(QTextCodec::codecForName("utf-8"));
 		QString all = in.readAll();
-		SmartEdit* curInput = new SmartEdit();
-		curInput->setPlainText(all);
+		SmartEdit* curEdit = new SmartEdit();
+		curEdit->setPlainText(all);
 		file.close();
-		editors->append(curInput);
+		editors->append(curEdit);
 
 		QListWidgetItem* item = new QListWidgetItem();
 		item->setText(fi.fileName());
 		listWidget->addItem(item);
-		inputTab->addTab(curInput, fi.fileName());
+		inputTab->addTab(curEdit, fi.fileName());
 		listWidget->setCurrentItem(item);
 		inputTab->setCurrentIndex(listWidget->currentRow());
 		//<commit5>查看res\tools\commit.txt
-		curInput->setFocus();
-		curInput->moveCursor(QTextCursor::End,QTextCursor::MoveAnchor);
+		curEdit->setFocus();
+
+		horizonUi.actionSave->setEnabled(true);
+		horizonUi.actionSave_All->setEnabled(true);
+		horizonUi.actionClose->setEnabled(true);
+		horizonUi.actionUndo->setEnabled(true);
+		horizonUi.actionRedo->setEnabled(true);
+		horizonUi.actionCut->setEnabled(true);
+		horizonUi.actionCopy->setEnabled(true);
+		horizonUi.actionPaste->setEnabled(true);
+		horizonUi.actionSelect_All->setEnabled(true);
+		horizonUi.actionRun->setEnabled(true);
+		horizonUi.actionBreak->setEnabled(true);
+		horizonUi.actionCancelBreak->setEnabled(true);
+
 		horizonUi.statusBar->showMessage(fi.fileName()
 			+ QString::fromLocal8Bit("打开（F1加断点，F2取消断点）"), 5000);
 	} else if (file_paths.contains(filePath, Qt::CaseSensitive)) {
@@ -437,7 +279,7 @@ void Horizon::fOpen()
 		listWidget->setCurrentRow(index);
 		inputTab->setCurrentIndex(index);
 		editors->at(index)->setFocus();
-		editors->at(index)->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
+		//editors->at(index)->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
 		horizonUi.statusBar->showMessage(QString::fromLocal8Bit("已在列表"), 3000);
 	}
 }
@@ -515,8 +357,318 @@ void Horizon::fClose()
 			inputTab->removeTab(index);
 			delete listWidget->takeItem(index);
 		}
+		if (!tabNotEmpty()) {
+			horizonUi.actionSave->setEnabled(false);
+			horizonUi.actionSave_All->setEnabled(false);
+			horizonUi.actionClose->setEnabled(false);
+			horizonUi.actionUndo->setEnabled(false);
+			horizonUi.actionRedo->setEnabled(false);
+			horizonUi.actionCut->setEnabled(false);
+			horizonUi.actionCopy->setEnabled(false);
+			horizonUi.actionPaste->setEnabled(false);
+			horizonUi.actionSelect_All->setEnabled(false);
+			horizonUi.actionRun->setEnabled(false);
+			horizonUi.actionBreak->setEnabled(false);
+			horizonUi.actionCancelBreak->setEnabled(false);
+			horizonUi.actionLineDebug->setEnabled(false);
+			horizonUi.actionPointDebug->setEnabled(false);
+			consoleView->clear();
+			IEView->clear();
+		}
 	}
 }
+/*无效行*/
+bool Horizon::lineInvalid(QString curText) {
+	return (NULL == curText || "{" == curText || "}" == curText || "$" == curText || curText.startsWith("/"));
+}
+/*给当前行添加断点*/
+void Horizon::fBreak() {
+	if (tabNotEmpty()) {
+		SmartEdit* curEdit = editors->at(inputTab->currentIndex());
+		int curLine = curEdit->textCursor().blockNumber(); 
+		QString curText = curEdit->document()->findBlockByNumber(curLine).text().trimmed();
+		if (-1 == curEdit->exceptionRow
+			&& !curEdit->pointBlockNumbers.contains(curLine)
+			&& !lineInvalid(curText)) {
+			curEdit->pointBlockNumbers.append(curLine);
+			horizonUi.actionPointDebug->setEnabled(true);
+			horizonUi.actionLineDebug->setEnabled(true);
+		}
+	}
+}
+/*取消当前行断点*/
+void Horizon::fCancelBreak() {
+	if (tabNotEmpty()) {
+		SmartEdit* curEdit = editors->at(inputTab->currentIndex());
+		int curLine = curEdit->textCursor().blockNumber(); 
+		if (curEdit->pointBlockNumbers.contains(curLine))
+			curEdit->pointBlockNumbers.removeOne(curLine);
+		if (curEdit->pointBlockNumbers.isEmpty()) {
+			horizonUi.actionPointDebug->setEnabled(false);
+			horizonUi.actionLineDebug->setEnabled(false);
+		}
+	}
+}
+
+/*逐句执行*/
+void Horizon::fLineDebug() {
+	if (tabNotEmpty()) {
+		int index = inputTab->currentIndex();
+		SmartEdit* curEdit = editors->at(index);
+		if (!curEdit->pointBlockNumbers.isEmpty()) {
+			if (curEdit->isEnabled()) {
+				curEdit->setEnabled(false);
+				horizonUi.actionRun->setEnabled(false);
+				horizonUi.actionCancelDebug->setEnabled(true);
+				fSave();
+				vars = ReadVal(fTest());
+			}
+			int blockNumber = Step(vars);
+			if (-1 == blockNumber) {
+				curEdit->setEnabled(true);
+				horizonUi.actionCancelDebug->setEnabled(false);
+				horizonUi.actionRun->setEnabled(true);
+			} else {
+				curEdit->setTextCursor(QTextCursor(curEdit->document()->findBlockByNumber(blockNumber)));
+			}
+		}
+	}
+
+}
+/*单步向后寻行*/
+int Horizon::Step(QList<Var*>* vars)
+{
+	if (!vars->empty()) {
+		Var* temp = vars->at(0);
+		if (temp->Msg != NULL && temp->Msg != "WRITE") {
+			consoleView->append(temp->Msg + "!	" + QString::fromLocal8Bit("行号:") + temp->Line);
+			outputTab->setCurrentIndex(0);
+			return -1;
+		}
+		int line = temp->Line.toInt();
+		IEView->clear();
+		IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
+		while (line == temp->Line.toInt()) {
+			if (temp->Msg == "WRITE") {
+				consoleView->append(temp->Val);
+				outputTab->setCurrentIndex(0);
+			}
+			else {
+				IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") +
+					temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+				outputTab->setCurrentIndex(1);
+			}
+			vars->removeFirst();
+			if (!vars->empty())
+				temp = vars->at(0);
+			else
+				return -1;
+		}
+		int blockNumber = line - 1;
+		return blockNumber;
+	} else {
+		return -1;
+	}
+}
+
+
+/*断点执行*/
+void Horizon::fPointDebug() {
+	if (tabNotEmpty()) {
+		int index = inputTab->currentIndex();
+		SmartEdit* curEdit = editors->at(index);
+		if (!curEdit->pointBlockNumbers.isEmpty()) {
+			if (curEdit->isEnabled()) {
+				curEdit->setEnabled(false);
+				horizonUi.actionRun->setEnabled(false);
+				horizonUi.actionCancelDebug->setEnabled(true);
+				fSave();
+				vars = ReadVal(fTest());
+			}
+			int blockNumber = FindFirstPoint(vars, curEdit->pointBlockNumbers);
+			if (-1 == blockNumber) {
+				curEdit->setEnabled(true);
+				horizonUi.actionCancelDebug->setEnabled(false);
+				horizonUi.actionRun->setEnabled(true);
+			} else {
+				curEdit->setTextCursor(QTextCursor(curEdit->document()->findBlockByNumber(blockNumber)));
+			}
+		}
+	}
+}
+/*找到接下来最近的一个断点行，成功输出断点行号，否则输出-1*/
+int Horizon::FindFirstPoint(QList<Var*>* vars, QList<int> pointBlockNumbers)
+{
+	if (!vars->empty()) {
+		//断点块号转断点行号
+		QList<int> pointLines;
+		for (int i = 0; i < pointBlockNumbers.count(); i++) {
+			pointLines.append(pointBlockNumbers.at(i) + 1);
+		}
+		//末尾入行
+		pointLines.append(vars->last()->Line.toInt());
+		Var* temp = vars->at(0);
+		int line = 0;
+		while (!pointLines.contains(temp->Line.toInt())) {
+			if (temp->Msg == "WRITE") {
+				consoleView->append(temp->Val);
+				outputTab->setCurrentIndex(0);
+			}
+			if (temp->Msg != NULL && temp->Msg != "WRITE") {
+				consoleView->append(temp->Msg + "!	" + QString::fromLocal8Bit("行号:") + temp->Line);
+				outputTab->setCurrentIndex(0);
+				return -1;
+			}
+			vars->removeFirst();
+			if (!vars->empty())
+				temp = vars->at(0);
+			else
+				return -1;
+		}
+		line = temp->Line.toInt();
+		if (temp) {
+			if (temp->Msg != "WRITE") {
+				IEView->clear();
+				IEView->append(QString::fromLocal8Bit("行号") + temp->Line + ":");
+				while (line == temp->Line.toInt()) {
+					if (temp->Msg == "WRITE") {
+						consoleView->append(temp->Val);
+						outputTab->setCurrentIndex(0);
+					}
+					else {
+						IEView->append(QString::fromLocal8Bit("名:") + temp->Name + QString::fromLocal8Bit(" 类型:") +
+							temp->Type + QString::fromLocal8Bit(" 值:") + temp->Val);
+						outputTab->setCurrentIndex(1);
+					}
+					vars->removeFirst();
+					if (!vars->empty())
+						temp = vars->at(0);
+					else
+						return -1;
+				}
+			}
+			else {
+				consoleView->append(temp->Val);
+				outputTab->setCurrentIndex(0);
+			}
+		}
+		else
+			return -1;
+		int blockNumber = line - 1;
+		return blockNumber;
+	}
+	else {
+		return -1;
+	}
+	
+}
+
+/*外部exe调用测试*/
+QString Horizon::fTest() {//<commit6>
+	QString standardOutput = NULL;
+	if (tabNotEmpty()) {
+		QProcess* process = new QProcess();
+		//process->setProcessChannelMode(QProcess::MergedChannels);
+		process->start("\"E:\\LLVM\\llvm build\\x64\\Debug\\Parser.exe\"", QStringList(file_paths.at(inputTab->currentIndex())));
+		//process->start("\"E:\\LLVM\\llvm build\\x64\\Debug\\Parser.exe\"");
+		qDebug()<<process->waitForStarted();
+		process->waitForReadyRead();
+		process->waitForFinished();
+		while (!process->atEnd()) {
+			standardOutput += QString::fromLocal8Bit(process->readLine().trimmed()) + " ";
+		}
+		if (process)
+			process->close();
+	}
+	return standardOutput;
+}
+
+/*读取后台数据并规范化载入内存*/
+QList<Var*>* Horizon::ReadVal(QString out)
+{
+	QString temp = NULL;
+	QString line = NULL;
+	QChar tcr = NULL;
+	QList<Var*>* vars = new QList<Var*>();
+	Var* tempVar;
+	int n = 0;
+	QString::const_iterator cit = NULL;//QChar指针，用来遍历QString
+	for (cit = out.cbegin(); cit < out.cend(); cit++) {
+		tcr = *cit;
+		if (tcr == '@')
+			n = 0;
+		else if (tcr == ' ' || cit == out.cend()) {
+			switch (n)
+			{
+			case 0:
+				if (temp != 'W') {
+					line = temp;
+					temp.clear();
+					n = 1;
+				}
+				else {
+					temp.clear();
+					n = 5;
+				}
+				break;
+			case 1:
+				tempVar = new Var();
+				tempVar->Line = line;
+				switch (temp.toInt())
+				{
+				case 0:tempVar->Type = "int"; break;
+				case 1:tempVar->Type = "real"; break;
+				case 2:tempVar->Type = "int[]"; break;
+				case 3:tempVar->Type = "real[]"; break;
+				default:
+					break;
+				}
+				temp.clear();
+				n = 2;
+				break;
+			case 2:
+				tempVar->Name = temp;
+				temp.clear();
+				n = 3;
+				break;
+			case 3:
+				tempVar->Val = temp;
+				vars->append(tempVar);
+				temp.clear();
+				n = 1;
+				break;
+			case 4:
+				tempVar = new Var();
+				tempVar->Line = line;
+				tempVar->Msg = temp;
+				vars->append(tempVar);
+				temp.clear();
+				n = 1;
+				break;
+			case 5:
+				tempVar = new Var();
+				tempVar->Line = line;
+				tempVar->Val = temp;
+				tempVar->Msg = "WRITE";
+				vars->append(tempVar);
+				temp.clear();
+				n = 1;
+				break;
+			default:
+				break;
+			}
+		}
+		else {
+			temp += tcr;
+			if (temp.contains("ERROR:")) {
+				n = 4;
+			}
+		}
+	}
+	return vars;
+}
+
+
 
 void Horizon::fUndo() {
 	if(tabNotEmpty()) editors->at(inputTab->currentIndex()) ->undo();

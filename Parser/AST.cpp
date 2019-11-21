@@ -1,7 +1,10 @@
-
 #include "AST.h"
 
-AST::~AST() {}
+
+AST::~AST()
+{
+
+}
 
 void AST::setRow(int row)
 {

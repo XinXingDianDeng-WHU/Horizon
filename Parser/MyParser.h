@@ -55,12 +55,10 @@
 #include "..//AutoTools/Production.h"
 #include "..//AutoTools/Production.cpp"*/
 
-#include "..//Parser/FromAutoTools/Production.h"
-#include "..//Parser/FromAutoTools/Reader.h"
-#include "..//Parser/FromAutoTools/ProductionSym.h"
-//#include "..//Parser/FromLexer/header.h"
-#include "..//Parser/FromLexer/MyLexer.h"
-//#include "..//Parser/FromLexer/unitTest.h"
+#include "../Parser/FromAutoTools/Production.h"
+#include "../Parser/FromAutoTools/Reader.h"
+#include "../Parser/FromAutoTools/ProductionSym.h"
+#include "../Parser/FromLexer/MyLexer.h"
 
 enum Behavior{ S, r, GOTO, acc };
 struct Action
@@ -190,8 +188,15 @@ private:
 	void addFuncFromFuncDefine(FuncDefineAST* funcDefine);
 	void addDecExp(DecExpAST* decExp);
 
+
+	//IR start
+	AST* root = nullptr;
+	//IR end
+
 	//DFAtools ÀïÃæµÄ
 	static map<DicIndex, string>* readSLR1Table(const char* sourceFileName);
+
+	void clearVarLevelMoreThan(int level);
 public:
 
 	MyParser(const char* sourceCodeFile, const char* SLR1File, const char* proFileName,string empty_str,bool isFile);

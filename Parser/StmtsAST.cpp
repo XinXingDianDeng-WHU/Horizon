@@ -1,5 +1,3 @@
-
-
 #include "StmtsAST.h"
 
 StmtsAST::StmtsAST()
